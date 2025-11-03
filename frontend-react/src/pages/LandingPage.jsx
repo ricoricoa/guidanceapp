@@ -1,6 +1,4 @@
 import { useState, useEffect } from "react";
-import "./../App.css";
-import { Navbar } from "../components/Navbar";
 import Modal from "../components/Modal";
 import SidePanel from "../components/SidePanel";
 import { Sun, Moon } from "lucide-react";
@@ -26,20 +24,6 @@ const LandingPage = () => {
   return (
     <div className="bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 min-h-screen w-full transition-colors duration-300">
 
-      {/* Navbar */}
-      <Navbar />
-      {/* Dark toggle */}
-      <button
-        onClick={() => setIsDark((d) => !d)}
-        aria-label="Toggle dark mode"
-        className="fixed top-4 right-4 z-50 p-2 rounded-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-md"
-      >
-        {isDark ? (
-          <Sun className="w-5 h-5 text-yellow-400" />
-        ) : (
-          <Moon className="w-5 h-5 text-gray-700" />
-        )}
-      </button>
       <button onClick={() => setOpen(true)}>Open Modal</button>
       <Modal open={open} onClose={() => setOpen(false)} title="My Modal">
         <p>This is the modal content.</p>

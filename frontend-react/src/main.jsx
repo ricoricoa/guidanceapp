@@ -10,7 +10,7 @@ import CarForm from './pages/CarForm.jsx'
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
-    <CarForm />
+    <App />
   </StrictMode>,
 );
 
