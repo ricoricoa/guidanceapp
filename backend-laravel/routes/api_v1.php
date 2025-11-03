@@ -5,7 +5,7 @@ use App\Http\Controllers\AuthController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
-Route::apiResource('cars', CarController::class);
+Route::middleware('auth:sanctum')->apiResource('tickets', CarController::class);
 
 Route::get('/user', function (Request $request) {
     return $request->user();
