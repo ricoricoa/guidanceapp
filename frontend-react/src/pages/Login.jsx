@@ -1,6 +1,6 @@
 import React, { use, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { login } from "../api/auth";
+import { login, getUser } from "../api/auth";
 
 export default function LoginForm() {
   const navigate = useNavigate();
@@ -16,7 +16,26 @@ export default function LoginForm() {
     try {
       const response = await login(formData.email, formData.password);
       if (response.data.status === 200) {
-        navigate("/cars");
+        // prefer role included in login response
+        const roleFromLogin = response.data.data?.user?.role || response.data.user?.role || response.data.role;
+        let role = roleFromLogin;
+        if (!role) {
+          // fallback to fetching user
+          try {
+            const userRes = await getUser();
+            role = userRes.data.data?.user?.role || userRes.data.user?.role || userRes.data.role;
+          } catch (err) {
+            // leave role undefined
+          }
+        }
+
+        if (role === "guidance" || role === "counselor") {
+          navigate("/guidance/dashboard");
+        } else if (role === "student") {
+          navigate("/student/dashboard");
+        } else {
+          navigate("/cars");
+        }
       }
     } catch (error) {
       setError(error.response?.data?.message || "Login failed");

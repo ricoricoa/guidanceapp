@@ -35,8 +35,7 @@ class AuthController extends Controller
                 'id' => $user->id,
                 'name' => $user->name,
                 'email' => $user->email,
-                //'role' => $user->role,
-                //'avatar' => $user->avatar_url,
+                'role' => $user->role,
             ]
         ]);
     }
@@ -97,7 +96,9 @@ class AuthController extends Controller
         $user = User::create([
             'name' => $data['name'],
             'email' => $data['email'],
+            'role' => $data['role'] ?? 'student',
             'password' => Hash::make($data['password']),
+            'address' => $data['address'] ?? null,
         ]);
 
         return $this->ok(

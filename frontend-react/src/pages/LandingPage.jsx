@@ -24,135 +24,134 @@ const LandingPage = () => {
   return (
     <div className="bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 min-h-screen w-full transition-colors duration-300">
 
-      <button onClick={() => setOpen(true)}>Open Modal</button>
-      <Modal open={open} onClose={() => setOpen(false)} title="My Modal">
-        <p>This is the modal content.</p>
-      </Modal>
-
-      <button onClick={() => setPanelOpen(true)}>Open Side Panel</button>
-      <SidePanel
-        open={panelOpen}
-        onClose={() => setPanelOpen(false)}
-        title="My Side Panel"
-      >
-        <p>This is the side panel content.</p>
-      </SidePanel>
-      {/* Hero Section */}
-      <section className="w-full flex flex-col md:flex-row items-center justify-between px-6 md:px-12 lg:px-20 xl:px-32 py-20 md:py-32 gap-12">
+      {/* Hero Section - Mindoro State University Guidance Office */}
+      <section className="w-full flex flex-col md:flex-row items-center justify-between px-6 md:px-12 lg:px-20 xl:px-32 py-20 md:py-28 gap-12">
         <div className="w-full md:w-1/2">
-          <h2 className="text-5xl md:text-6xl lg:text-7xl font-extrabold text-gray-900 mb-6 leading-tight">
-            Build Modern Web Apps with{" "}
-            <span className="bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
-              {" "}
-              Ease{" "}
-            </span>
+          <h2 className="text-4xl md:text-5xl lg:text-6xl font-extrabold text-gray-900 mb-4 leading-tight">
+            Mindoro State University
+            <br />
+            <span className="text-indigo-700">Bongabong Campus</span>
           </h2>
-          <p className="text-gray-600 text-lg mb-8 leading-relaxed">
-            Create fast, responsive, and modern web applications using React and
-            Tailwind CSS. Get started in minutes with our flexible UI components
-            and streamlined workflow.
+          <h3 className="text-xl text-gray-700 mb-6">Guidance and Counseling Office</h3>
+
+          <p className="text-gray-600 text-lg mb-6 leading-relaxed">
+            The Guidance Office provides counseling, academic advising, career
+            planning, and personal support services to help MSU Bongabong
+            students succeed academically and personally. We offer confidential
+            one-on-one counseling, group workshops, and referral services.
           </p>
-          <button className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-8 py-4 rounded-xl hover:shadow-2xl hover:scale-105 transition-all duration-300 font-semibold text-lg">
-            Order Now →
-          </button>
+
+          <div className="flex items-center gap-3">
+            <a
+              href="#services"
+              className="bg-indigo-600 text-white px-6 py-3 rounded-xl hover:shadow-lg hover:scale-105 transition-all duration-300 font-semibold"
+            >
+              Explore Services
+            </a>
+            <button
+              onClick={() => setPanelOpen(true)}
+              className="bg-white text-indigo-700 border border-indigo-200 px-6 py-3 rounded-xl font-semibold hover:bg-gray-50 transition"
+            >
+              More Info
+            </button>
+            <button
+              onClick={() => setOpen(true)}
+              className="ml-2 bg-white text-indigo-700 border border-indigo-200 px-4 py-2 rounded-lg font-medium hover:bg-gray-50 transition"
+            >
+              Quick Help
+            </button>
+          </div>
         </div>
 
         <div className="w-full md:w-1/2">
           <img
-            src="https://images.pexels.com/photos/2014422/pexels-photo-2014422.jpeg?auto=compress&cs=tinysrgb&fit=crop&h=627&w=1200"
-            alt="Modern web design"
-            className="rounded-3xl shadow-2xl w-full hover:scale-105 transition-transform duration-500"
+            src="https://images.pexels.com/photos/256381/pexels-photo-256381.jpeg?auto=compress&cs=tinysrgb&h=627&w=1200"
+            alt="MSU Bongabong Campus"
+            className="rounded-3xl shadow-2xl w-full hover:scale-102 transition-transform duration-500 object-cover h-80 md:h-96"
           />
         </div>
       </section>
 
-      {/* Features Section */}
-      <section
-        id="features"
-        className="w-full py-24 bg-gradient-to-b from-white to-gray-50"
-      >
+      {/* Services Section */}
+      <section id="services" className="w-full py-20 bg-white">
         <div className="w-full px-6 md:px-12 lg:px-20 xl:px-32">
-          <div className="text-center mb-16">
-            <h3 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
-              Why Choose Us
+          <div className="text-center mb-12">
+            <h3 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+              Our Services
             </h3>
             <p className="text-gray-600 text-lg">
-              {" "}
-              Powerful features designed to accelerate your development process{" "}
+              A range of student support services to promote well-being and
+              academic success.
             </p>
           </div>
 
-          <div className="w-full grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {/* Card 1 */}
-            <div className="bg-white border border-gray-200 p-8 rounded-2xl shadow-md hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 cursor-pointer group">
-              <div className="text-5xl mb-4 group-hover:scale-110 transition-transform duration-300">
-                ⚡
-              </div>
-              <h4 className="text-xl font-semibold mb-3 text-gray-800 group-hover:text-indigo-600 transition-colors">
-                {" "}
-                Fast Performance{" "}
-              </h4>
-              <p className="text-gray-600 leading-relaxed">
-                Experience lightning-fast load times and optimized components
-                that deliver seamless user experiences.
-              </p>
+          <div className="w-full grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="bg-gray-50 border border-gray-100 p-6 rounded-xl shadow-sm">
+              <h4 className="text-lg font-semibold mb-2">Counseling</h4>
+              <p className="text-sm text-gray-600">Confidential personal and
+                psychological counseling for students.</p>
             </div>
+            <div className="bg-gray-50 border border-gray-100 p-6 rounded-xl shadow-sm">
+              <h4 className="text-lg font-semibold mb-2">Academic Advising</h4>
+              <p className="text-sm text-gray-600">Help with course planning
+                and academic progression.</p>
+            </div>
+            <div className="bg-gray-50 border border-gray-100 p-6 rounded-xl shadow-sm">
+              <h4 className="text-lg font-semibold mb-2">Career Guidance</h4>
+              <p className="text-sm text-gray-600">Workshops, CV help and
+                job placement resources.</p>
+            </div>
+            <div className="bg-gray-50 border border-gray-100 p-6 rounded-xl shadow-sm">
+              <h4 className="text-lg font-semibold mb-2">Referral</h4>
+              <p className="text-sm text-gray-600">Referrals to specialists
+                and external support services when needed.</p>
+            </div>
+          </div>
 
-            {/* Card 2 */}
-            <div className="bg-white border border-gray-200 p-8 rounded-2xl shadow-md hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 cursor-pointer group">
-              <div className="text-5xl mb-4 group-hover:scale-110 transition-transform duration-300">
-                {" "}
-                📱{" "}
-              </div>
-              <h4 className="text-xl font-semibold mb-3 text-gray-800 group-hover:text-indigo-600 transition-colors">
-                {" "}
-                Responsive Design{" "}
-              </h4>
-              <p className="text-gray-600 leading-relaxed">
-                Your website looks stunning on all devices, from mobile to
-                desktop, with adaptive layouts.
-              </p>
-            </div>
-
-            {/* Card 3 */}
-            <div className="bg-white border border-gray-200 p-8 rounded-2xl shadow-md hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 cursor-pointer group">
-              <div className="text-5xl mb-4 group-hover:scale-110 transition-transform duration-300">
-                🎨
-              </div>
-              <h4 className="text-xl font-semibold mb-3 text-gray-800 group-hover:text-indigo-600 transition-colors">
-                {" "}
-                Easy Customization{" "}
-              </h4>
-              <p className="text-gray-600 leading-relaxed">
-                Tailwind's utility-first classes make styling fast, flexible,
-                and maintainable at scale.
-              </p>
-            </div>
+          <div className="mt-10 text-center">
+            <p className="text-gray-700">Office Hours: Mon–Fri, 8:00 AM – 5:00 PM</p>
+            <p className="text-gray-700">Email: guidance@msu-bongabong.edu.ph</p>
+            <p className="text-gray-700">Phone: (042) 123-4567</p>
           </div>
         </div>
       </section>
 
       {/* CTA Section */}
-      <section className="w-full bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-700 text-white text-center py-20 px-6 md:px-12">
+      <section className="w-full bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-700 text-white text-center py-16 px-6 md:px-12">
         <div className="w-full">
-          <h3 className="text-4xl md:text-5xl font-bold mb-6">
-            {" "}
-            Ready to Launch Your Next Project?{" "}
+          <h3 className="text-3xl md:text-4xl font-bold mb-4">
+            Need guidance or support?
           </h3>
-          <p className="mb-10 text-lg text-indigo-100">
-            Join thousands of developers who trust our modern UI components to
-            build exceptional experiences.
+          <p className="mb-6 text-lg text-indigo-100">
+            Visit the Guidance Office or access our online resources for
+            appointments and information.
           </p>
-          <button className="bg-white text-indigo-600 font-bold px-10 py-4 rounded-xl hover:bg-gray-100 hover:scale-105 transition-all duration-300 shadow-xl text-lg">
-            Explore our Products
-          </button>
+          <a href="/login" className="inline-block bg-white text-indigo-600 font-bold px-8 py-3 rounded-xl hover:bg-gray-100 transition">
+            Access Student Portal
+          </a>
         </div>
       </section>
+      {/* Modal and SidePanel instances */}
+      <Modal open={open} onClose={() => setOpen(false)} title="Quick Help">
+        <p className="text-gray-700 dark:text-gray-200 mb-4">Need immediate assistance? Contact the Guidance Office or call during office hours.</p>
+        <p className="text-sm text-gray-600 dark:text-gray-300">Email: guidance@msu-bongabong.edu.ph</p>
+        <p className="text-sm text-gray-600 dark:text-gray-300">Phone: (042) 123-4567</p>
+      </Modal>
+
+      <SidePanel open={panelOpen} onClose={() => setPanelOpen(false)} title="More About Our Services">
+        <p className="text-gray-700 dark:text-gray-300 mb-3">We provide confidential counseling, academic advising, career services, and referrals. To book an appointment, please contact the office or use the student portal.</p>
+        <ul className="text-sm text-gray-600 dark:text-gray-300 list-disc pl-5">
+          <li>Individual Counseling</li>
+          <li>Group Workshops</li>
+          <li>Academic Advising Sessions</li>
+          <li>Career Planning Resources</li>
+        </ul>
+      </SidePanel>
 
       {/* Footer */}
       <footer className="w-full bg-gray-900 text-gray-400 text-center py-8">
         <p className="text-sm">
-          © 2025 Put your name here. All rights reserved.
+          © 2025 Mindoro State University Bongabong Campus — Guidance Office
         </p>
       </footer>
     </div>

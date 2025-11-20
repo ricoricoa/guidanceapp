@@ -7,6 +7,9 @@ import LandingPage from "./pages/LandingPage";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import Cars from "./pages/CarListing";
+import StudentDashboard from "./pages/StudentDashboard";
+import GuidanceDashboard from "./pages/GuidanceDashboard";
+import ProtectedRoute from "./components/ProtectedRoute";
 import api from "./api/axios";
 
 const App = () => {
@@ -23,6 +26,22 @@ const App = () => {
           <Route path="/car-form" element={<CarForm />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
+          <Route
+            path="/student/dashboard"
+            element={
+              <ProtectedRoute allowedRoles={["student"]}>
+                <StudentDashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/guidance/dashboard"
+            element={
+              <ProtectedRoute allowedRoles={["guidance", "counselor"]}>
+                <GuidanceDashboard />
+              </ProtectedRoute>
+            }
+          />
         </Routes>
       </main>
     </>
