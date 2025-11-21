@@ -11,9 +11,12 @@ import StudentDashboard from "./pages/StudentDashboard";
 import GuidanceDashboard from "./pages/GuidanceDashboard";
 import ProtectedRoute from "./components/ProtectedRoute";
 import api from "./api/axios";
+import { initializeAuth } from "./api/Auth";
 
 const App = () => {
   useEffect(() => {
+    // Initialize auth from stored token
+    initializeAuth();
     api.get('/sanctum/csrf-cookie').catch(() => {});
   }, []);
   return (

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { getCars } from '../api/auth';
+import { getCars } from '../api/Auth';
 
 const Cars = () => {
   const [cars, setCars] = useState([]);

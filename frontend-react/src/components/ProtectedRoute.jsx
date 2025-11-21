@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getUser } from '../api/auth';
+import { getUser } from '../api/Auth';
 
 const ProtectedRoute = ({ allowedRoles = [], children }) => {
   const [loading, setLoading] = useState(true);
@@ -15,7 +15,9 @@ const ProtectedRoute = ({ allowedRoles = [], children }) => {
         if (!mounted) return;
         // find the user object in common response shapes
         const u = res.data.data?.user ?? res.data.user ?? res.data;
+        console.log('ProtectedRoute: User authenticated', u);
         if (!u || !u.id) {
+          console.log('ProtectedRoute: No user found in response');
           navigate('/login', { replace: true });
           return;
         }
@@ -23,7 +25,8 @@ const ProtectedRoute = ({ allowedRoles = [], children }) => {
         // authenticated -> allow child to render; server will return 403 for role mismatches
         setAuthorized(true);
       })
-      .catch(() => {
+      .catch((err) => {
+        console.log('ProtectedRoute: Auth failed', err.response?.status, err.message);
         navigate('/login', { replace: true });
       })
       .finally(() => mounted && setLoading(false));

@@ -2,6 +2,8 @@
 
 use App\Http\Controllers\Api\V1\CarController;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\Api\V1\StudentController;
+use App\Http\Controllers\Api\V1\DashboardController;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\Route;
@@ -15,18 +17,28 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
 });
 
 // Role-protected dashboard endpoints
-Route::middleware(['auth:sanctum', 'role:student'])->get('/student/dashboard', function (Request $request) {
-	return response()->json([
-		'message' => 'Welcome to student dashboard',
-		'user' => $request->user(),
-	]);
+Route::middleware(['auth:sanctum', 'role:student'])->group(function () {
+	Route::get('/student/dashboard', [DashboardController::class, 'studentDashboard']);
 });
 
-Route::middleware(['auth:sanctum', 'role:guidance'])->get('/guidance/dashboard', function (Request $request) {
-	return response()->json([
-		'message' => 'Welcome to guidance dashboard',
-		'user' => $request->user(),
-	]);
+// Student counselor request endpoints
+Route::middleware(['auth:sanctum', 'role:student'])->group(function () {
+	Route::post('/student/appointments', [StudentController::class, 'createAppointmentRequest']);
+	Route::get('/student/appointments', [StudentController::class, 'getAppointmentRequests']);
+	Route::get('/student/appointments/{id}', [StudentController::class, 'getAppointmentRequest']);
+	Route::put('/student/appointments/{id}', [StudentController::class, 'updateAppointmentRequest']);
+	Route::delete('/student/appointments/{id}', [StudentController::class, 'deleteAppointmentRequest']);
+	Route::get('/counselors', [StudentController::class, 'getCounselors']);
+});
+
+Route::middleware(['auth:sanctum', 'role:guidance'])->group(function () {
+	Route::get('/guidance/dashboard', [DashboardController::class, 'guidanceDashboard']);
+});
+
+// Shared appointment endpoints
+Route::middleware('auth:sanctum')->group(function () {
+	Route::get('/appointments', [DashboardController::class, 'getAppointments']);
+	Route::put('/appointments/{appointmentId}', [DashboardController::class, 'updateAppointmentStatus']);
 });
 
 // Profile endpoints: view and update allowed profile fields (no role changes)

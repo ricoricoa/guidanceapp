@@ -19,18 +19,22 @@ class AuthController extends Controller
     {
         $request->validated($request->all());
 
-        if (!Auth::attempt($request->only('email', 'password'))) {
+        $credentials = $request->only('email', 'password');
+        \Log::info('Login attempt', ['email' => $credentials['email']]);
+        
+        if (!Auth::attempt($credentials)) {
+            \Log::warning('Login failed - invalid credentials', ['email' => $credentials['email']]);
             return $this->error('Invalid credentials', 401);
         }
 
-        $user = User::where('email', $request->email)->first();
-
-        // Create session instead of token
-        $request->session()->regenerate();
-
         $user = Auth::user();
+        \Log::info('Login successful', ['user_id' => $user->id, 'email' => $user->email, 'role' => $user->role]);
+        
+        // Create a Sanctum token for API authentication
+        $token = $user->createToken('api-token')->plainTextToken;
         
         return $this->ok('Authenticated', [
+            'token' => $token,
             'user' => [
                 'id' => $user->id,
                 'name' => $user->name,
@@ -39,52 +43,11 @@ class AuthController extends Controller
             ]
         ]);
     }
-        // $user = User::where('email', $request->email)->first();
-
-        // if (! $user || ! Hash::check($request->password, $user->password)) {
-        //     return response()->json(['message' => 'Invalid credentials'], 401);
-        // }
-
-        // $token = $user->createToken('api-token')->plainTextToken;
-
-        // return response()->json([
-        //     'token' => $token,
-        //     'user' => $user,
-        // ]);
-
-        // $credentials = $request->validate([
-        //     'email' => ['required', 'email'],
-        //     'password' => ['required'],
-        // ]);
-
-        // if (Auth::attempt($credentials)) {
-        //     $request->session()->regenerate();
-        //     return response()->json([
-        //         'message' => 'Authenticated',
-        //         'user' => Auth::user(),
-        //     ]);
-        // }
-
-        // return response()->json(['message' => 'Invalid credentials'], 401);
     
-    // $user = User::firstWhere('email', $request->email);
-
-    // $token = $user->createToken('auth_token')->plainTextToken;
-
-    // cookie()->queue('auth_token', $token, 60 * 24 * 30, '/', null, true, true);
-
-    // return $this->ok('Authenticated', ['user' => $user]);
-
-
     public function logout(Request $request)
     {
-        // If using tokens, delete the current token
-        //$request->user()->currentAccessToken()->delete();
-
-        // If using session/cookie auth via Sanctum
-        Auth::guard('web')->logout();
-        $request->session()->invalidate();
-        $request->session()->regenerateToken();
+        // Delete the current token
+        $request->user()->currentAccessToken()->delete();
 
         return $this->ok('Logged out successfully');
     }
@@ -103,6 +66,7 @@ class AuthController extends Controller
 
         return $this->ok(
             'User registered successfully',
+            ['user' => $user]
         );
     }
 
