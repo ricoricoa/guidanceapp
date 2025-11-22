@@ -409,6 +409,7 @@ const AdminDashboard = () => {
                         </span>
                       </div>
                       <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">{c.email}</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-500 mb-4">Created: {formatDate(c.created_at)}</p>
                       <div className="mb-4 pb-4 border-b border-gray-200 dark:border-gray-700">
                         <p className="text-2xl font-bold text-indigo-600 dark:text-indigo-400">{c.students || '-'}</p>
                         <p className="text-sm text-gray-600 dark:text-gray-400">Students assigned</p>
@@ -436,8 +437,7 @@ const AdminDashboard = () => {
                       <tr>
                         <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900 dark:text-white">Name</th>
                         <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900 dark:text-white">Email</th>
-                        <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900 dark:text-white">Grade</th>
-                        <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900 dark:text-white">Assigned Counselor</th>
+                        <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900 dark:text-white">Created</th>
                         <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900 dark:text-white">Status</th>
                         <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900 dark:text-white">Actions</th>
                       </tr>
@@ -447,8 +447,7 @@ const AdminDashboard = () => {
                         <tr key={s.id} className="border-b border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50">
                           <td className="px-6 py-4 text-sm text-gray-900 dark:text-white font-medium">{s.name}</td>
                           <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-400">{s.email}</td>
-                          <td className="px-6 py-4 text-sm text-gray-900 dark:text-white">{s.grade || '-'}</td>
-                          <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-400">{s.assigned_counselor || '-'}</td>
+                          <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-400">{formatDate(s.created_at)}</td>
                           <td className="px-6 py-4 text-sm">
                             <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(s.status)}`}>
                               {s.status}
