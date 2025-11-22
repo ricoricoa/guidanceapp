@@ -436,7 +436,8 @@ const StudentDashboard = () => {
         <div className="p-4 border-t-2 border-green-200 dark:border-green-700 flex-shrink-0">
           <button
             onClick={handleLogout}
-            className="w-full flex items-center justify-center gap-3 px-4 py-3 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition font-bold hover:scale-105"
+            className="w-full flex items-center justify-center gap-3 px-4 py-3 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white dark:from-red-600 dark:to-red-700 dark:hover:from-red-700 dark:hover:to-red-800 rounded-lg transition font-bold hover:scale-105 shadow-md"
+            title="Logout from your account"
           >
             <LogOut className="w-5 h-5 flex-shrink-0" />
             {sidebarOpen && <span>Logout</span>}
