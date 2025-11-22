@@ -24,6 +24,7 @@ class User extends Authenticatable
         'role',
         'address',
         'password',
+        'counselor_id',
     ];
 
     /**
@@ -47,5 +48,23 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
         ];
+    }
+
+    public function documentRequests()
+    {
+        return $this->hasMany(DocumentRequest::class);
+    }
+
+    // Relationship for students created by this counselor
+    public function students()
+    {
+        return $this->hasMany(User::class, 'counselor_id', 'id')
+            ->where('role', 'student');
+    }
+
+    // Relationship for the counselor who created this student
+    public function counselor()
+    {
+        return $this->belongsTo(User::class, 'counselor_id', 'id');
     }
 }

@@ -4,6 +4,8 @@ use App\Http\Controllers\Api\V1\CarController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\Api\V1\StudentController;
 use App\Http\Controllers\Api\V1\DashboardController;
+use App\Http\Controllers\Api\V1\DocumentRequestController;
+use App\Http\Controllers\Api\V1\AdminController;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\Route;
@@ -33,6 +35,9 @@ Route::middleware(['auth:sanctum', 'role:student'])->group(function () {
 
 Route::middleware(['auth:sanctum', 'role:guidance'])->group(function () {
 	Route::get('/guidance/dashboard', [DashboardController::class, 'guidanceDashboard']);
+	Route::get('/guidance/students', [AdminController::class, 'getStudents']);
+	Route::get('/counselor/students', [AdminController::class, 'getCounselorStudents']);
+	Route::post('/counselor/students', [AdminController::class, 'createCounselorStudent']);
 });
 
 // Shared appointment endpoints
@@ -65,6 +70,15 @@ Route::middleware('auth:sanctum')->put('/user/profile', function (Request $reque
 });
 
 Route::middleware(['auth:sanctum', 'role:admin'])->apiResource('cars', CarController::class);
+
+// Admin routes
+Route::middleware(['auth:sanctum', 'role:admin'])->group(function () {
+	Route::get('/admin/users', [AdminController::class, 'getAllUsers']);
+	Route::get('/admin/counselors', [AdminController::class, 'getCounselors']);
+	Route::get('/admin/students', [AdminController::class, 'getStudents']);
+	Route::get('/admin/dashboard-summary', [AdminController::class, 'getDashboardSummary']);
+	Route::get('/admin/login-history', [AdminController::class, 'getLoginHistory']);
+});
 
 //Public Routes
 //Route::get('/carlisting', [CarController::class, 'index']);
