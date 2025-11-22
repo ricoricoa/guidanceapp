@@ -61,7 +61,7 @@ export default function LoginForm() {
   );
 
   return (
-    <div className="flex flex-col min-h-screen bg-gradient-to-br from-green-50 via-emerald-50 to-teal-50 dark:from-gray-900 dark:via-green-900 dark:to-teal-900">
+    <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-green-50 via-emerald-50 to-teal-50 dark:from-gray-900 dark:via-green-900 dark:to-teal-900 relative">
       <style>{`
         @keyframes float {
           0%, 100% { transform: translateY(0px) rotate(0deg); }
@@ -104,7 +104,7 @@ export default function LoginForm() {
         <FloatingLeaf delay={1} left={90} size={26} />
       </div>
 
-      <div className="w-full max-w-md relative z-10 animate-slide-up">
+      <div className="w-full max-w-md relative z-10 animate-slide-up px-4">
         {/* Card */}
         <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl overflow-hidden border-2 border-green-100 dark:border-green-700">
           {/* Header */}

@@ -403,8 +403,6 @@ const StudentDashboard = () => {
               </div>
             </div>
           )}
-            </div>
-          )}
           <button
             onClick={() => setSidebarOpen(!sidebarOpen)}
             className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg"
