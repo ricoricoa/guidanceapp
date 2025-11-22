@@ -112,13 +112,13 @@ const CounselorDashboard = () => {
     return () => (mounted = false);
   }, []);
 
-  // Fetch students created by this counselor
+  // Fetch all students for messaging
   useEffect(() => {
     let mounted = true;
     const fetchStudents = async () => {
       try {
-        // Try to fetch students created by this counselor
-        const res = await api.get('/api/v1/counselor/students');
+        // Fetch all students from the admin endpoint
+        const res = await api.get('/api/v1/admin/students');
         if (mounted && res.data?.data) {
           const studentsList = Array.isArray(res.data.data) ? res.data.data : [];
           setStudents(studentsList);

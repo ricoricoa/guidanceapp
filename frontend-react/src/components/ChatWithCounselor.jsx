@@ -12,31 +12,14 @@ export const ChatWithCounselor = () => {
   const [currentUser, setCurrentUser] = useState(null);
   const messagesEndRef = useRef(null);
 
-  // Fetch current user info and their assigned counselor
+  // Fetch current user info
   useEffect(() => {
     let mounted = true;
     const fetchUserInfo = async () => {
       try {
         const res = await api.get('/api/v1/student/dashboard');
         if (mounted && res.data?.data?.user) {
-          const user = res.data.data.user;
-          setCurrentUser(user);
-          
-          // If student has a counselor_id, fetch that counselor
-          if (user.counselor_id) {
-            try {
-              const counselorRes = await api.get(`/api/v1/admin/counselors`);
-              if (counselorRes.data?.data) {
-                const assignedCounselor = counselorRes.data.data.find(c => c.id === user.counselor_id);
-                if (assignedCounselor) {
-                  setCounselors([assignedCounselor]);
-                  return;
-                }
-              }
-            } catch (err) {
-              console.error('Error fetching assigned counselor:', err);
-            }
-          }
+          setCurrentUser(res.data.data.user);
         }
       } catch (err) {
         console.error('Error fetching user info:', err);

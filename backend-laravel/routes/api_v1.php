@@ -36,8 +36,6 @@ Route::middleware(['auth:sanctum', 'role:student'])->group(function () {
 Route::middleware(['auth:sanctum', 'role:guidance'])->group(function () {
 	Route::get('/guidance/dashboard', [DashboardController::class, 'guidanceDashboard']);
 	Route::get('/guidance/students', [AdminController::class, 'getStudents']);
-	Route::get('/counselor/students', [AdminController::class, 'getCounselorStudents']);
-	Route::post('/counselor/students', [AdminController::class, 'createCounselorStudent']);
 });
 
 // Shared appointment endpoints
@@ -78,6 +76,12 @@ Route::middleware(['auth:sanctum', 'role:admin'])->group(function () {
 	Route::get('/admin/students', [AdminController::class, 'getStudents']);
 	Route::get('/admin/dashboard-summary', [AdminController::class, 'getDashboardSummary']);
 	Route::get('/admin/login-history', [AdminController::class, 'getLoginHistory']);
+});
+
+// Counselor routes - access all students for messaging
+Route::middleware(['auth:sanctum', 'role:guidance'])->group(function () {
+	Route::get('/admin/students', [AdminController::class, 'getStudents']);
+	Route::get('/admin/counselors', [AdminController::class, 'getCounselors']);
 });
 
 //Public Routes
