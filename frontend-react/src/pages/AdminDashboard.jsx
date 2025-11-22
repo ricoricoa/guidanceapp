@@ -66,12 +66,15 @@ const AdminDashboard = () => {
       } catch (err) {
         console.error('Error fetching dashboard:', err);
         // Fallback to mock data if API fails
-        setAllUsers([
+        const allMockUsers = [
           { id: 1, name: 'Maria Santos', email: 'maria@example.com', role: 'counselor', created_at: '2025-11-01', status: 'active' },
           { id: 2, name: 'John Cruz', email: 'john@example.com', role: 'counselor', created_at: '2025-11-02', status: 'active' },
           { id: 3, name: 'Anna Garcia', email: 'anna@example.com', role: 'counselor', created_at: '2025-11-03', status: 'active' },
           { id: 4, name: 'Juan Dela Cruz', email: 'juan@example.com', role: 'student', created_at: '2025-11-05', status: 'active' },
-        ]);
+        ];
+        setAllUsers(allMockUsers);
+        setCounselors(allMockUsers.filter(u => u.role === 'counselor'));
+        setStudents(allMockUsers.filter(u => u.role === 'student'));
       } finally {
         mounted && setLoading(false);
       }
@@ -397,29 +400,36 @@ const AdminDashboard = () => {
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {counselors.map(c => (
-                    <div key={c.id} className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-                      <div className="flex items-start justify-between mb-4">
-                        <div>
-                          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{c.name}</h3>
-                          <p className="text-sm text-gray-600 dark:text-gray-400">{c.specialization || c.role}</p>
+                  {counselors && counselors.length > 0 ? (
+                    counselors.map(c => (
+                      <div key={c.id} className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+                        <div className="flex items-start justify-between mb-4">
+                          <div>
+                            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{c.name}</h3>
+                            <p className="text-sm text-gray-600 dark:text-gray-400">{c.specialization || c.role}</p>
+                          </div>
+                          <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(c.status)}`}>
+                            {c.status}
+                          </span>
                         </div>
-                        <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(c.status)}`}>
-                          {c.status}
-                        </span>
+                        <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">{c.email}</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-500 mb-4">Created: {formatDate(c.created_at)}</p>
+                        <div className="mb-4 pb-4 border-b border-gray-200 dark:border-gray-700">
+                          <p className="text-2xl font-bold text-indigo-600 dark:text-indigo-400">{c.students || '-'}</p>
+                          <p className="text-sm text-gray-600 dark:text-gray-400">Students assigned</p>
+                        </div>
+                        <div className="flex gap-2">
+                          <button className="flex-1 px-3 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm">View</button>
+                          <button className="flex-1 px-3 py-2 bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white rounded hover:bg-gray-300 text-sm">Edit</button>
+                        </div>
                       </div>
-                      <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">{c.email}</p>
-                      <p className="text-xs text-gray-500 dark:text-gray-500 mb-4">Created: {formatDate(c.created_at)}</p>
-                      <div className="mb-4 pb-4 border-b border-gray-200 dark:border-gray-700">
-                        <p className="text-2xl font-bold text-indigo-600 dark:text-indigo-400">{c.students || '-'}</p>
-                        <p className="text-sm text-gray-600 dark:text-gray-400">Students assigned</p>
-                      </div>
-                      <div className="flex gap-2">
-                        <button className="flex-1 px-3 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm">View</button>
-                        <button className="flex-1 px-3 py-2 bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white rounded hover:bg-gray-300 text-sm">Edit</button>
-                      </div>
+                    ))
+                  ) : (
+                    <div className="col-span-full bg-white dark:bg-gray-800 rounded-lg shadow p-12 text-center">
+                      <UserCheck className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                      <p className="text-gray-600 dark:text-gray-400">No counselors found</p>
                     </div>
-                  ))}
+                  )}
                 </div>
               </div>
             )}
@@ -431,6 +441,7 @@ const AdminDashboard = () => {
                   <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Students Management</h2>
                 </div>
 
+                {students && students.length > 0 ? (
                 <div className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-x-auto">
                   <table className="w-full">
                     <thead className="bg-gray-50 dark:bg-gray-700 border-b border-gray-200 dark:border-gray-600">
@@ -466,6 +477,12 @@ const AdminDashboard = () => {
                     </tbody>
                   </table>
                 </div>
+                ) : (
+                  <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-12 text-center">
+                    <Users className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                    <p className="text-gray-600 dark:text-gray-400">No students found</p>
+                  </div>
+                )}
               </div>
             )}
 
