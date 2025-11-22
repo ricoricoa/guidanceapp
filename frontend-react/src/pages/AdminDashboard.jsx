@@ -51,7 +51,7 @@ const AdminDashboard = () => {
           setStudents(studentsRes.data.data);
         }
 
-        // Fetch login history
+        // Fetch login history with real data from backend
         const historyRes = await api.get('/api/v1/admin/login-history');
         if (mounted && historyRes.data?.data) {
           setLoginHistory(historyRes.data.data);
@@ -78,7 +78,12 @@ const AdminDashboard = () => {
     };
 
     fetchData();
-    return () => (mounted = false);
+    // Auto-refresh every 5 seconds to get updated login history
+    const interval = setInterval(fetchData, 5000);
+    return () => {
+      mounted = false;
+      clearInterval(interval);
+    };
   }, []);
 
   const handleLogout = async () => {
@@ -93,7 +98,24 @@ const AdminDashboard = () => {
 
   const formatDate = (date) => {
     if (!date) return 'N/A';
-    return new Date(date).toLocaleDateString() + ' ' + new Date(date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const dateObj = new Date(date);
+    const today = new Date();
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+    
+    const isToday = dateObj.toDateString() === today.toDateString();
+    const isYesterday = dateObj.toDateString() === yesterday.toDateString();
+    
+    const time = dateObj.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    const dateStr = dateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    
+    if (isToday) {
+      return `Today ${time}`;
+    } else if (isYesterday) {
+      return `Yesterday ${time}`;
+    } else {
+      return `${dateStr} ${time}`;
+    }
   };
 
   const getStatusColor = (status) => {
@@ -337,7 +359,7 @@ const AdminDashboard = () => {
                                 {u.role}
                               </span>
                             </td>
-                            <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-400">{new Date(u.created_at).toLocaleDateString()}</td>
+                            <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-400">{formatDate(u.created_at)}</td>
                             <td className="px-6 py-4 text-sm">
                               <span className={`px-3 py-1 rounded-full text-xs font-medium capitalize ${getStatusColor(u.status)}`}>
                                 {u.status}
