@@ -61,7 +61,7 @@ class StudentController extends Controller
 
         return response()->json([
             'message' => 'Appointment requests retrieved',
-            'appointments' => $requests,
+            'data' => $requests,
         ]);
     }
 
@@ -162,7 +162,7 @@ class StudentController extends Controller
 
         return response()->json([
             'message' => 'Counselors retrieved',
-            'counselors' => $counselors,
+            'data' => $counselors,
         ]);
     }
 }

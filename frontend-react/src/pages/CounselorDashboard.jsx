@@ -1,8 +1,13 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import api from '../api/axios';
-import { Users, Calendar, X, Clock, FileText, MessageSquare, Send } from 'lucide-react';
+import { Users, Calendar, X, Clock, FileText, MessageSquare, Send, Moon, Sun, User, LogOut } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import ProfileSettings from '../components/ProfileSettings';
+import { useTheme } from '../context/ThemeContext';
 
 const CounselorDashboard = () => {
+  const navigate = useNavigate();
+  const { isDark, toggleTheme } = useTheme();
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [forbidden, setForbidden] = useState(false);
@@ -21,6 +26,14 @@ const CounselorDashboard = () => {
   const [selectedStudent, setSelectedStudent] = useState(null);
   const [chatMessages, setChatMessages] = useState([]);
   const [messageInput, setMessageInput] = useState('');
+  const messagesEndRef = useRef(null);
+  
+  // Approval workflow states
+  const [selectedRequest, setSelectedRequest] = useState(null);
+  const [approvalReason, setApprovalReason] = useState('');
+  const [approvalAction, setApprovalAction] = useState(null); // 'approve' or 'reject'
+  const [showApprovalModal, setShowApprovalModal] = useState(false);
+  const [isApproving, setIsApproving] = useState(false);
 
   useEffect(() => {
     let mounted = true;
@@ -51,18 +64,18 @@ const CounselorDashboard = () => {
     const fetchRequests = async () => {
       try {
         // Try to fetch from a counselor requests endpoint if available
-        const res = await api.get('/api/v1/counselor/student-requests');
+        const res = await api.get('/api/v1/counselor/certificate-requests');
         if (mounted && res.data?.data) {
           const requestsData = Array.isArray(res.data.data) ? res.data.data : [];
           setStudentRequests(
             requestsData.map(req => ({
               id: req.id,
-              student_name: req.student?.name || 'Unknown',
-              student_email: req.student?.email || 'N/A',
-              request_type: req.type || req.request_type || 'General',
+              student_name: req.student?.name || req.student_name || 'Unknown',
+              student_email: req.student?.email || req.student_email || 'N/A',
+              request_type: req.certificate_type || req.type || req.request_type || 'General',
               status: req.status || 'pending',
               submitted_at: req.created_at || new Date().toISOString(),
-              purpose: req.purpose || 'Request from student'
+              purpose: req.purpose || 'Certificate request from student'
             }))
           );
         }
@@ -87,17 +100,17 @@ const CounselorDashboard = () => {
       try {
         const res = await api.get('/api/v1/appointments');
         if (mounted && res.data?.data) {
-          // Transform CounselorRequest data to match our expected structure
+          // Transform appointment data to match our expected structure
           const appointmentsData = Array.isArray(res.data.data) 
             ? res.data.data.map(apt => ({
                 id: apt.id,
                 student_id: apt.student_id,
-                student_name: apt.student?.name || 'Unknown',
-                student_email: apt.student?.email || 'N/A',
+                student_name: apt.student?.name || apt.student_name || 'Unknown',
+                student_email: apt.student?.email || apt.student_email || 'N/A',
                 topic: apt.topic,
                 status: apt.status,
-                requested_date: apt.requested_date,
-                requested_time: apt.requested_time,
+                requested_date: apt.date || apt.requested_date,
+                requested_time: apt.time || apt.requested_time,
                 notes: apt.notes || '',
               }))
             : [];
@@ -119,19 +132,30 @@ const CounselorDashboard = () => {
       try {
         // Fetch all students from the admin endpoint
         const res = await api.get('/api/v1/admin/students');
+        console.log('Students API response:', res.data);
         if (mounted && res.data?.data) {
           const studentsList = Array.isArray(res.data.data) ? res.data.data : [];
+          console.log('Students list:', studentsList);
           setStudents(studentsList);
+          
+          // Auto-select first student if none selected
+          if (studentsList.length > 0) {
+            console.log('Auto-selecting first student:', studentsList[0]);
+            setSelectedStudent(studentsList[0]);
+          }
         }
       } catch (err) {
         console.error('Error fetching students:', err);
         // Fallback - use mock data
         if (mounted) {
-          setStudents([
+          const mockStudents = [
             { id: 1, name: 'Juan Dela Cruz', email: 'juan@example.com' },
             { id: 2, name: 'Maria Santos', email: 'maria@example.com' },
             { id: 3, name: 'Pedro Reyes', email: 'pedro@example.com' },
-          ]);
+          ];
+          setStudents(mockStudents);
+          console.log('Using mock students:', mockStudents);
+          setSelectedStudent(mockStudents[0]);
         }
       }
     };
@@ -139,6 +163,73 @@ const CounselorDashboard = () => {
     fetchStudents();
     return () => (mounted = false);
   }, []);
+
+  // Auto-load messages when switching between students
+  useEffect(() => {
+    if (selectedStudent && user?.id) {
+      console.log('Selected student changed, loading messages for:', selectedStudent);
+      loadStudentMessages();
+    }
+  }, [selectedStudent, user]);
+
+  const loadStudentMessages = async () => {
+    if (!selectedStudent || !user?.id) {
+      console.log('Cannot load messages - missing selectedStudent or user');
+      return;
+    }
+
+    try {
+      const studentId = selectedStudent.id;
+      const counselorId = user.id;
+
+      console.log(`Loading messages for student ${studentId} and counselor ${counselorId}`);
+      
+      // Fetch messages from backend API
+      const response = await api.get(`/api/v1/messages/${studentId}/${counselorId}`);
+      const apiMessages = response.data?.data || [];
+
+      console.log('API Messages response:', apiMessages);
+
+      // Format messages for display
+      const formattedMessages = apiMessages.map(msg => {
+        // Format timestamp
+        let displayTime = msg.timestamp || '';
+        if (msg.created_at) {
+          try {
+            const date = new Date(msg.created_at);
+            displayTime = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+          } catch (e) {
+            displayTime = msg.created_at;
+          }
+        }
+
+        return {
+          id: msg.id,
+          sender: msg.sender,
+          senderName: msg.sender === 'student' ? selectedStudent.name : user.name,
+          text: msg.text || msg.message,
+          timestamp: displayTime,
+          read: msg.read
+        };
+      });
+
+      console.log('Formatted messages:', formattedMessages);
+      setChatMessages(formattedMessages);
+      
+      // Auto-scroll to bottom
+      setTimeout(() => {
+        if (messagesEndRef.current) {
+          messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
+        }
+      }, 100);
+    } catch (err) {
+      console.error('Error loading messages:', err);
+      // Fallback to localStorage
+      const key = `chat_student_${selectedStudent.id}_counselor_${user.id}`;
+      const savedMessages = JSON.parse(localStorage.getItem(key) || '[]');
+      setChatMessages(savedMessages);
+    }
+  };
 
   if (loading) return (
     <div className="flex items-center justify-center min-h-screen">
@@ -154,6 +245,18 @@ const CounselorDashboard = () => {
       </div>
     </div>
   );
+
+  const handleLogout = async () => {
+    try {
+      await api.post('/api/v1/logout');
+      localStorage.removeItem('authToken');
+      navigate('/login');
+    } catch (err) {
+      console.error('Logout error:', err);
+      localStorage.removeItem('authToken');
+      navigate('/login');
+    }
+  };
 
   const handleSaveProfile = async (e) => {
     e.preventDefault();
@@ -181,6 +284,174 @@ const CounselorDashboard = () => {
     setShowNoteModal(false);
     setSessionNote('');
     setTimeout(() => setMessage(''), 3000);
+  };
+
+  // Approval handlers for requests and appointments
+  const handleApprovalSubmit = async () => {
+    if (!approvalReason.trim()) {
+      setMessage(`Please enter a ${approvalAction} reason.`);
+      return;
+    }
+
+    setIsApproving(true);
+    try {
+      // Check if this is an appointment or a document request
+      const isAppointment = !selectedRequest.request_type;
+
+      if (isAppointment) {
+        // Handle appointment approval - uses PUT /api/v1/appointments/{id}
+        const response = await api.put(`/api/v1/appointments/${selectedRequest.id}`, {
+          status: approvalAction === 'approve' ? 'scheduled' : 'cancelled',
+          notes: approvalReason
+        });
+
+        if (response.data?.data || response.status === 200) {
+          // Update the appointment in local state
+          setAppointments(prev =>
+            prev.map(apt =>
+              apt.id === selectedRequest.id
+                ? {
+                    ...apt,
+                    status: approvalAction === 'approve' ? 'scheduled' : 'cancelled'
+                  }
+                : apt
+            )
+          );
+          setMessage(`Appointment ${approvalAction}ed successfully!`);
+        }
+      } else {
+        // Handle certificate request approval - uses PUT /api/v1/certificate-requests/{id}/approve or /reject
+        const endpoint = approvalAction === 'approve'
+          ? `/api/v1/certificate-requests/${selectedRequest.id}/approve`
+          : `/api/v1/certificate-requests/${selectedRequest.id}/reject`;
+
+        const response = await api.put(endpoint, {
+          counselor_remarks: approvalReason
+        });
+
+        if (response.data?.data || response.status === 200) {
+          // Update the request in local state
+          setStudentRequests(prev =>
+            prev.map(req =>
+              req.id === selectedRequest.id
+                ? {
+                    ...req,
+                    status: approvalAction === 'approve' ? 'approved' : 'rejected'
+                  }
+                : req
+            )
+          );
+          setMessage(`Request ${approvalAction}ed successfully!`);
+        }
+      }
+
+      // Close modal and reset
+      setShowApprovalModal(false);
+      setSelectedRequest(null);
+      setApprovalReason('');
+      setApprovalAction(null);
+
+      setTimeout(() => setMessage(''), 3000);
+    } catch (err) {
+      console.error('Error updating status:', err);
+      setMessage(
+        `Failed to ${approvalAction} request. ${
+          err.response?.data?.message || err.message || ''
+        }`
+      );
+    } finally {
+      setIsApproving(false);
+    }
+  };
+
+  const handleSendCounselorMessage = async () => {
+    console.log('📤 handleSendCounselorMessage called');
+    console.log('messageInput value:', messageInput);
+    console.log('messageInput.trim():', messageInput.trim());
+    console.log('selectedStudent:', selectedStudent);
+    console.log('user:', user);
+    console.log('api object:', api);
+    
+    if (!messageInput.trim()) {
+      console.warn('❌ Message input is empty');
+      return;
+    }
+
+    if (!selectedStudent) {
+      console.warn('❌ No student selected');
+      return;
+    }
+
+    if (!user) {
+      console.warn('❌ User not loaded');
+      return;
+    }
+
+    try {
+      console.log('📡 Preparing to send message...');
+      console.log('Endpoint: /api/v1/messages');
+      console.log('Payload:', {
+        recipient_id: selectedStudent.id,
+        message: messageInput
+      });
+      
+      // Send message via backend API
+      const response = await api.post('/api/v1/messages', {
+        recipient_id: selectedStudent.id,
+        message: messageInput
+      });
+
+      console.log('✅ API response status:', response.status);
+      console.log('✅ API response data:', response.data);
+
+      if (response.data?.data) {
+        // Add the message to local state
+        const newMessage = {
+          id: response.data.data.id,
+          sender: 'counselor',
+          senderName: user.name,
+          text: response.data.data.message || response.data.data.text,
+          timestamp: response.data.data.created_at,
+          read: false
+        };
+
+        console.log('✅ Adding message to state:', newMessage);
+        const updatedMessages = [...chatMessages, newMessage];
+        setChatMessages(updatedMessages);
+        console.log('✅ Updated chatMessages:', updatedMessages);
+        setMessageInput('');
+        console.log('✅ Cleared messageInput');
+        
+        // Scroll to bottom
+        setTimeout(() => {
+          if (messagesEndRef.current) {
+            messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
+          }
+        }, 100);
+      } else {
+        console.warn('⚠️ Response does not contain data');
+      }
+    } catch (err) {
+      console.error('❌ Error sending message:', err.message);
+      console.error('Error config:', err.config);
+      console.error('Error response:', err.response?.data);
+      console.error('Error response status:', err.response?.status);
+      
+      // Fallback to localStorage
+      const newMessage = {
+        id: chatMessages.length + 1,
+        sender: 'counselor',
+        text: messageInput,
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      };
+
+      const updatedMessages = [...chatMessages, newMessage];
+      setChatMessages(updatedMessages);
+      const key = `chat_student_${selectedStudent.id}_counselor_${user.id}`;
+      localStorage.setItem(key, JSON.stringify(updatedMessages));
+      setMessageInput('');
+      console.log('⚠️ Falling back to localStorage');
+    }
   };
 
   const getStatusBadgeClass = (status) => {
@@ -258,7 +529,7 @@ const CounselorDashboard = () => {
         </div>
 
         {/* Profile Section in Sidebar */}
-        <div className="p-6 border-t border-gray-200 dark:border-gray-700 mt-8">
+        <div className="p-6 border-t border-gray-200 dark:border-gray-700 mt-8 space-y-3">
           <div className="mb-4">
             <p className="text-xs text-gray-600 dark:text-gray-400 uppercase font-semibold">Logged in as</p>
             <p className="font-semibold text-gray-900 dark:text-white mt-1 truncate">{user?.name}</p>
@@ -270,15 +541,31 @@ const CounselorDashboard = () => {
           >
             Edit Profile
           </button>
+          <button
+            onClick={handleLogout}
+            className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm font-medium transition"
+          >
+            <LogOut className="w-4 h-4" />
+            Logout
+          </button>
         </div>
       </div>
 
       {/* Main Content */}
       <div className="flex-1 ml-64 pb-8">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-8">
-          <div className="mb-8">
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Welcome, {user?.name}!</h1>
-            <p className="text-gray-600 dark:text-gray-400 mt-1">Counselor Dashboard</p>
+          <div className="mb-8 flex items-center justify-between">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Welcome, {user?.name}!</h1>
+              <p className="text-gray-600 dark:text-gray-400 mt-1">Counselor Dashboard</p>
+            </div>
+            <button
+              onClick={toggleTheme}
+              className="flex items-center gap-2 px-4 py-2 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-900 dark:text-white rounded-lg transition"
+              title={`Switch to ${isDark ? 'light' : 'dark'} mode`}
+            >
+              {isDark ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+            </button>
           </div>
 
         {/* Navigation Tabs - Hidden on desktop, shown on mobile */}
@@ -337,6 +624,17 @@ const CounselorDashboard = () => {
               <MessageSquare className="w-4 h-4" />
               Messages
             </button>
+            <button
+              onClick={() => setActiveTab('profile')}
+              className={`px-4 py-3 font-medium transition border-b-2 flex items-center gap-2 whitespace-nowrap ${
+                activeTab === 'profile'
+                  ? 'border-indigo-600 text-indigo-600'
+                  : 'border-transparent text-gray-600 dark:text-gray-400'
+              }`}
+            >
+              <User className="w-4 h-4" />
+              Profile
+            </button>
           </div>
         </div>
 
@@ -351,86 +649,39 @@ const CounselorDashboard = () => {
 
         {/* Dashboard Tab */}
         {activeTab === 'dashboard' && (
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            <div className="lg:col-span-2 space-y-8">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-                  <p className="text-gray-600 text-sm">Total Appointments</p>
-                  <p className="text-3xl font-bold text-gray-900 dark:text-white mt-1">{appointments.length}</p>
-                </div>
-                <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-                  <p className="text-gray-600 text-sm">Pending Requests</p>
-                  <p className="text-3xl font-bold text-gray-900 dark:text-white mt-1">{studentRequests.filter(r => r.status === 'pending').length}</p>
-                </div>
+          <div className="space-y-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+                <p className="text-gray-600 dark:text-gray-400 text-sm">Total Appointments</p>
+                <p className="text-3xl font-bold text-gray-900 dark:text-white mt-1">{appointments.length}</p>
               </div>
-
-              <div className="bg-white dark:bg-gray-800 rounded-lg shadow">
-                <div className="p-6 border-b border-gray-200 dark:border-gray-700">
-                  <h2 className="text-xl font-bold">Upcoming Appointments</h2>
-                </div>
-                <div className="p-6 space-y-3">
-                  {appointments.slice(0, 5).map(apt => (
-                    <div key={apt.id} className="flex justify-between p-4 bg-gray-50 dark:bg-gray-700 rounded">
-                      <div>
-                        <p className="font-semibold">{apt.student_name || 'Student'}</p>
-                        <p className="text-sm text-gray-600">{apt.topic}</p>
-                      </div>
-                      <span className={`px-3 py-1 rounded text-xs font-semibold ${apt.status === 'pending' ? 'bg-yellow-100 text-yellow-800' : 'bg-green-100 text-green-800'}`}>
-                        {apt.status}
-                      </span>
-                    </div>
-                  ))}
-                </div>
+              <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+                <p className="text-gray-600 dark:text-gray-400 text-sm">Pending Requests</p>
+                <p className="text-3xl font-bold text-gray-900 dark:text-white mt-1">{studentRequests.filter(r => r.status === 'pending').length}</p>
               </div>
             </div>
 
-            {/* Profile */}
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow sticky top-24">
-              <div className="p-6 border-b border-gray-200">
-                <h2 className="text-lg font-bold">My Profile</h2>
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow">
+              <div className="p-6 border-b border-gray-200 dark:border-gray-700">
+                <h2 className="text-xl font-bold text-gray-900 dark:text-white">Upcoming Appointments</h2>
               </div>
-
-              {!editing ? (
-                <div className="p-6">
-                  <div className="mb-4">
-                    <p className="text-xs text-gray-600 uppercase font-semibold">Name</p>
-                    <p className="text-lg font-semibold mt-1">{user?.name}</p>
-                  </div>
-                  <div className="mb-6">
-                    <p className="text-xs text-gray-600 uppercase font-semibold">Email</p>
-                    <p className="text-sm mt-1 break-all">{user?.email}</p>
-                  </div>
-                  <button
-                    onClick={() => setEditing(true)}
-                    className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg"
-                  >
-                    Edit
-                  </button>
-                </div>
-              ) : (
-                <form onSubmit={handleSaveProfile} className="p-6 space-y-4">
-                  <input
-                    type="text"
-                    value={formData.name}
-                    onChange={e => setFormData({ ...formData, name: e.target.value })}
-                    className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 dark:bg-gray-700"
-                  />
-                  <input
-                    type="email"
-                    value={formData.email}
-                    onChange={e => setFormData({ ...formData, email: e.target.value })}
-                    className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 dark:bg-gray-700"
-                  />
-                  <div className="flex gap-2">
-                    <button type="submit" disabled={saving} className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg">
-                      {saving ? 'Saving...' : 'Save'}
-                    </button>
-                    <button type="button" onClick={() => setEditing(false)} className="flex-1 px-4 py-2 bg-gray-300 rounded-lg">
-                      Cancel
-                    </button>
-                  </div>
-                </form>
-              )}
+              <div className="p-6 space-y-3">
+                {appointments.length > 0 ? (
+                  appointments.slice(0, 5).map(apt => (
+                    <div key={apt.id} className="flex justify-between p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition">
+                      <div>
+                        <p className="font-semibold text-gray-900 dark:text-white">{apt.student_name || 'Student'}</p>
+                        <p className="text-sm text-gray-600 dark:text-gray-400">{apt.topic}</p>
+                      </div>
+                      <span className={`px-3 py-1 rounded text-xs font-semibold whitespace-nowrap ml-4 ${apt.status === 'pending' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300' : 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'}`}>
+                        {apt.status}
+                      </span>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-center text-gray-600 dark:text-gray-400 py-8">No appointments yet</p>
+                )}
+              </div>
             </div>
           </div>
         )}
@@ -476,10 +727,26 @@ const CounselorDashboard = () => {
 
                     {request.status === 'pending' && (
                       <div className="flex gap-2 pt-4 border-t">
-                        <button className="flex-1 px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">
+                        <button
+                          onClick={() => {
+                            setSelectedRequest(request);
+                            setApprovalAction('approve');
+                            setShowApprovalModal(true);
+                          }}
+                          className="flex-1 px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50"
+                          disabled={isApproving}
+                        >
                           Approve
                         </button>
-                        <button className="flex-1 px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700">
+                        <button
+                          onClick={() => {
+                            setSelectedRequest(request);
+                            setApprovalAction('reject');
+                            setShowApprovalModal(true);
+                          }}
+                          className="flex-1 px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 disabled:opacity-50"
+                          disabled={isApproving}
+                        >
                           Reject
                         </button>
                       </div>
@@ -489,161 +756,6 @@ const CounselorDashboard = () => {
               ) : (
                 <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-8 text-center">
                   <p className="text-gray-600">No requests found</p>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* Messages Tab */}
-        {activeTab === 'messages' && (
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div className="lg:col-span-1">
-              <div className="bg-white dark:bg-gray-800 rounded-lg shadow">
-                <div className="p-4 border-b">
-                  <h3 className="font-semibold">Messages</h3>
-                </div>
-                <div className="divide-y max-h-96 overflow-y-auto">
-                  {studentMessages.length > 0 ? (
-                    studentMessages.map(msg => (
-                      <div
-                        key={msg.id}
-                        onClick={() => {
-                          setSelectedStudent(msg);
-                          // Load saved messages from localStorage using consistent key format
-                          const counselorId = user?.id;
-                          const savedMessages = JSON.parse(localStorage.getItem(`chat_student_${msg.id}_counselor_${counselorId}`) || '[]');
-                          setChatMessages(savedMessages.length > 0 ? savedMessages : []);
-                        }}
-                        className={`p-4 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer transition ${
-                          selectedStudent?.id === msg.id ? 'bg-indigo-50 dark:bg-indigo-900' : ''
-                        }`}
-                      >
-                        <div className="flex justify-between items-start">
-                          <div>
-                            <p className="font-medium">{msg.student_name}</p>
-                            <p className="text-xs text-gray-500 mt-1">{msg.student_email}</p>
-                          </div>
-                          {msg.unread > 0 && (
-                            <span className="bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-                              {msg.unread}
-                            </span>
-                          )}
-                        </div>
-                        <p className="text-xs text-gray-600 truncate mt-2">{msg.last_message}</p>
-                      </div>
-                    ))
-                  ) : (
-                    <div className="p-4 text-center text-gray-500">
-                      <p>No students available</p>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            <div className="lg:col-span-2">
-              {selectedStudent ? (
-                <div className="bg-white dark:bg-gray-800 rounded-lg shadow h-96 flex flex-col">
-                  {/* Chat Header */}
-                  <div className="p-4 border-b bg-gradient-to-r from-indigo-500 to-indigo-600 text-white rounded-t-lg">
-                    <h3 className="font-semibold text-lg">{selectedStudent.student_name}</h3>
-                    <p className="text-sm opacity-90">{selectedStudent.student_email}</p>
-                  </div>
-
-                  {/* Chat Messages */}
-                  <div className="flex-1 overflow-y-auto p-4 space-y-4">
-                    {chatMessages.map(msg => (
-                      <div
-                        key={msg.id}
-                        className={`flex ${msg.sender === 'counselor' ? 'justify-end' : 'justify-start'}`}
-                      >
-                        <div
-                          className={`max-w-xs px-4 py-2 rounded-lg ${
-                            msg.sender === 'counselor'
-                              ? 'bg-indigo-500 text-white rounded-br-none'
-                              : 'bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white rounded-bl-none'
-                          }`}
-                        >
-                          <p className="text-sm">{msg.text}</p>
-                          <p className="text-xs opacity-70 mt-1">{msg.timestamp}</p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-
-                  {/* Chat Input */}
-                  <div className="p-4 border-t">
-                    <div className="flex gap-2">
-                      <input
-                        type="text"
-                        placeholder="Type a message..."
-                        value={messageInput}
-                        onChange={(e) => setMessageInput(e.target.value)}
-                        onKeyPress={(e) => {
-                          if (e.key === 'Enter' && messageInput.trim() && selectedStudent) {
-                            // Add message to chat
-                            const counselorId = user?.id;
-                            const newMessage = {
-                              id: chatMessages.length + 1,
-                              sender: 'counselor',
-                              text: messageInput,
-                              timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-                            };
-                            const updatedMessages = [...chatMessages, newMessage];
-                            setChatMessages(updatedMessages);
-                            
-                            // Save to localStorage with consistent key format
-                            localStorage.setItem(`chat_student_${selectedStudent.id}_counselor_${counselorId}`, JSON.stringify(updatedMessages));
-                            
-                            // Update student's last message in the list
-                            setStudentMessages(studentMessages.map(s => 
-                              s.id === selectedStudent.id 
-                                ? { ...s, last_message: messageInput, last_message_time: new Date() }
-                                : s
-                            ));
-                            
-                            setMessageInput('');
-                          }
-                        }}
-                        className="flex-1 px-4 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white focus:outline-none focus:border-indigo-500"
-                      />
-                      <button
-                        onClick={() => {
-                          if (messageInput.trim() && selectedStudent) {
-                            const counselorId = user?.id;
-                            const newMessage = {
-                              id: chatMessages.length + 1,
-                              sender: 'counselor',
-                              text: messageInput,
-                              timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-                            };
-                            const updatedMessages = [...chatMessages, newMessage];
-                            setChatMessages(updatedMessages);
-                            
-                            // Save to localStorage with consistent key format
-                            localStorage.setItem(`chat_student_${selectedStudent.id}_counselor_${counselorId}`, JSON.stringify(updatedMessages));
-                            
-                            // Update student's last message in the list
-                            setStudentMessages(studentMessages.map(s => 
-                              s.id === selectedStudent.id 
-                                ? { ...s, last_message: messageInput, last_message_time: new Date() }
-                                : s
-                            ));
-                            
-                            setMessageInput('');
-                          }
-                        }}
-                        className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition"
-                      >
-                        Send
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                <div className="bg-white dark:bg-gray-800 rounded-lg shadow h-96 flex items-center justify-center">
-                  <p className="text-gray-600 dark:text-gray-400">Click on a student to start messaging</p>
                 </div>
               )}
             </div>
@@ -687,12 +799,25 @@ const CounselorDashboard = () => {
                     {apt.status === 'pending' && (
                       <div className="flex gap-2 pt-4 border-t">
                         <button
-                          onClick={() => { setSelectedAppointment(apt); setShowNoteModal(true); }}
-                          className="flex-1 px-3 py-2 bg-green-600 text-white rounded hover:bg-green-700 text-sm font-medium"
+                          onClick={() => {
+                            setSelectedRequest(apt);
+                            setApprovalAction('approve');
+                            setShowApprovalModal(true);
+                          }}
+                          className="flex-1 px-3 py-2 bg-green-600 text-white rounded hover:bg-green-700 text-sm font-medium disabled:opacity-50"
+                          disabled={isApproving}
                         >
                           Approve
                         </button>
-                        <button className="flex-1 px-3 py-2 bg-red-600 text-white rounded hover:bg-red-700 text-sm font-medium">
+                        <button
+                          onClick={() => {
+                            setSelectedRequest(apt);
+                            setApprovalAction('reject');
+                            setShowApprovalModal(true);
+                          }}
+                          className="flex-1 px-3 py-2 bg-red-600 text-white rounded hover:bg-red-700 text-sm font-medium disabled:opacity-50"
+                          disabled={isApproving}
+                        >
                           Reject
                         </button>
                       </div>
@@ -726,10 +851,6 @@ const CounselorDashboard = () => {
                         key={student.id}
                         onClick={() => {
                           setSelectedStudent(student);
-                          // Load saved messages from localStorage
-                          const counselorId = user?.id;
-                          const savedMessages = JSON.parse(localStorage.getItem(`chat_student_${student.id}_counselor_${counselorId}`) || '[]');
-                          setChatMessages(savedMessages);
                         }}
                         className={`p-4 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer transition ${
                           selectedStudent?.id === student.id ? 'bg-indigo-50 dark:bg-indigo-900' : ''
@@ -763,23 +884,26 @@ const CounselorDashboard = () => {
                   {/* Chat Messages */}
                   <div className="flex-1 overflow-y-auto p-4 space-y-4">
                     {chatMessages.length > 0 ? (
-                      chatMessages.map(msg => (
-                        <div
-                          key={msg.id}
-                          className={`flex ${msg.sender === 'counselor' ? 'justify-end' : 'justify-start'}`}
-                        >
+                      <>
+                        {chatMessages.map(msg => (
                           <div
-                            className={`max-w-xs px-4 py-2 rounded-lg ${
-                              msg.sender === 'counselor'
-                                ? 'bg-indigo-500 text-white rounded-br-none'
-                                : 'bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white rounded-bl-none'
-                            }`}
+                            key={msg.id}
+                            className={`flex ${msg.sender === 'counselor' ? 'justify-end' : 'justify-start'}`}
                           >
-                            <p className="text-sm">{msg.text}</p>
-                            <p className="text-xs opacity-70 mt-1">{msg.timestamp}</p>
+                            <div
+                              className={`max-w-xs px-4 py-2 rounded-lg ${
+                                msg.sender === 'counselor'
+                                  ? 'bg-indigo-500 text-white rounded-br-none'
+                                  : 'bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white rounded-bl-none'
+                              }`}
+                            >
+                              <p className="text-sm">{msg.text}</p>
+                              <p className="text-xs opacity-70 mt-1">{msg.timestamp}</p>
+                            </div>
                           </div>
-                        </div>
-                      ))
+                        ))}
+                        <div ref={messagesEndRef} />
+                      </>
                     ) : (
                       <div className="flex items-center justify-center h-full text-gray-500">
                         <p className="text-sm">No messages yet. Start the conversation!</p>
@@ -797,41 +921,20 @@ const CounselorDashboard = () => {
                         onChange={(e) => setMessageInput(e.target.value)}
                         onKeyPress={(e) => {
                           if (e.key === 'Enter' && messageInput.trim() && selectedStudent) {
-                            const counselorId = user?.id;
-                            const newMessage = {
-                              id: chatMessages.length + 1,
-                              sender: 'counselor',
-                              text: messageInput,
-                              timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-                            };
-                            const updatedMessages = [...chatMessages, newMessage];
-                            setChatMessages(updatedMessages);
-                            
-                            // Save to localStorage
-                            localStorage.setItem(`chat_student_${selectedStudent.id}_counselor_${counselorId}`, JSON.stringify(updatedMessages));
-                            
-                            setMessageInput('');
+                            handleSendCounselorMessage();
                           }
                         }}
                         className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white focus:outline-none focus:border-indigo-500"
                       />
                       <button
                         onClick={() => {
+                          console.log('🔘 Send button clicked');
+                          console.log('messageInput.trim():', messageInput.trim());
+                          console.log('selectedStudent:', selectedStudent);
                           if (messageInput.trim() && selectedStudent) {
-                            const counselorId = user?.id;
-                            const newMessage = {
-                              id: chatMessages.length + 1,
-                              sender: 'counselor',
-                              text: messageInput,
-                              timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-                            };
-                            const updatedMessages = [...chatMessages, newMessage];
-                            setChatMessages(updatedMessages);
-                            
-                            // Save to localStorage
-                            localStorage.setItem(`chat_student_${selectedStudent.id}_counselor_${counselorId}`, JSON.stringify(updatedMessages));
-                            
-                            setMessageInput('');
+                            handleSendCounselorMessage();
+                          } else {
+                            console.warn('❌ Button click but missing data');
                           }
                         }}
                         className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition flex items-center gap-2"
@@ -850,34 +953,118 @@ const CounselorDashboard = () => {
             </div>
           </div>
         )}
+
+        {/* Profile Tab */}
+        {activeTab === 'profile' && (
+          <ProfileSettings
+            user={user}
+            onUpdate={(updatedUser) => {
+              setUser(updatedUser);
+              setFormData({
+                name: updatedUser.name ?? '',
+                email: updatedUser.email ?? '',
+                address: updatedUser.address ?? '',
+              });
+              setMessage('Profile updated successfully!');
+              setTimeout(() => setMessage(''), 3000);
+            }}
+            loading={saving}
+            message={message}
+            messageType="success"
+            onMessageClear={() => setMessage('')}
+          />
+        )}
       </div>
 
-      {/* Session Note Modal */}
-      {showNoteModal && selectedAppointment && (
+      {/* Approval Modal */}
+      {showApprovalModal && selectedRequest && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full">
             <div className="p-6 border-b flex justify-between items-center">
-              <h2 className="text-xl font-bold">Session Note</h2>
-              <button onClick={() => setShowNoteModal(false)} className="text-gray-500">
+              <h2 className="text-xl font-bold">
+                {approvalAction === 'approve' ? 'Approve' : 'Reject'} Request
+              </h2>
+              <button
+                onClick={() => {
+                  setShowApprovalModal(false);
+                  setSelectedRequest(null);
+                  setApprovalReason('');
+                  setApprovalAction(null);
+                }}
+                className="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
+              >
                 <X className="w-5 h-5" />
               </button>
             </div>
-            <form onSubmit={e => { e.preventDefault(); handleSaveNote(); }} className="p-6">
-              <p className="text-sm text-gray-600 mb-4"><strong>Topic:</strong> {selectedAppointment.topic}</p>
-              <label className="block text-sm font-semibold mb-2">Session Notes</label>
-              <textarea
-                value={sessionNote}
-                onChange={e => setSessionNote(e.target.value)}
-                placeholder="Document the session details..."
-                className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 dark:bg-gray-700 h-32 resize-none"
-                required
-              />
-              <div className="flex gap-2 mt-4">
-                <button type="submit" className="flex-1 px-4 py-2 bg-indigo-600 text-white rounded-lg">
-                  Save Note
+            <form
+              onSubmit={e => {
+                e.preventDefault();
+                handleApprovalSubmit();
+              }}
+              className="p-6 space-y-4"
+            >
+              <div>
+                <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+                  <strong>Student:</strong> {selectedRequest.student_name || selectedRequest.student?.name || 'N/A'}
+                </p>
+                {selectedRequest.topic && (
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+                    <strong>Topic:</strong> {selectedRequest.topic}
+                  </p>
+                )}
+                {selectedRequest.request_type && (
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+                    <strong>Type:</strong> {selectedRequest.request_type}
+                  </p>
+                )}
+                {selectedRequest.purpose && (
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                    <strong>Purpose:</strong> {selectedRequest.purpose}
+                  </p>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold mb-2">
+                  {approvalAction === 'approve' ? 'Approval Notes' : 'Rejection Reason'}
+                </label>
+                <textarea
+                  value={approvalReason}
+                  onChange={e => setApprovalReason(e.target.value)}
+                  placeholder={
+                    approvalAction === 'approve'
+                      ? 'Add any approval notes or conditions...'
+                      : 'Explain why this request is being rejected...'
+                  }
+                  className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 dark:bg-gray-700 dark:text-white h-24 resize-none focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  required
+                />
+              </div>
+
+              <div className="flex gap-2 pt-4 border-t">
+                <button
+                  type="submit"
+                  disabled={isApproving}
+                  className={`flex-1 px-4 py-2 rounded-lg font-medium text-white transition ${
+                    approvalAction === 'approve'
+                      ? 'bg-green-600 hover:bg-green-700 disabled:bg-green-400'
+                      : 'bg-red-600 hover:bg-red-700 disabled:bg-red-400'
+                  }`}
+                >
+                  {isApproving ? 'Processing...' : (approvalAction === 'approve' ? 'Approve' : 'Reject')}
                 </button>
-                <button type="button" onClick={() => setShowNoteModal(false)} className="flex-1 px-4 py-2 bg-gray-300 rounded-lg">
-                  Close
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowApprovalModal(false);
+                    setSelectedRequest(null);
+                    setApprovalReason('');
+                    setApprovalAction(null);
+                  }}
+                  disabled={isApproving}
+                  className="flex-1 px-4 py-2 bg-gray-300 dark:bg-gray-600 text-gray-800 dark:text-white rounded-lg hover:bg-gray-400 dark:hover:bg-gray-500 disabled:opacity-50"
+                >
+                  Cancel
                 </button>
               </div>
             </form>

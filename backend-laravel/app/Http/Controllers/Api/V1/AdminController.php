@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\V1;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Models\LoginHistory;
+use App\Models\DocumentRequest;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
@@ -214,6 +215,37 @@ class AdminController extends Controller
             'message' => 'Login history retrieved successfully',
             'data' => $loginHistory,
             'total' => $loginHistory->count(),
+        ], 200);
+    }
+
+    /**
+     * Get all student document requests for counselor
+     */
+    public function getStudentDocumentRequests(Request $request)
+    {
+        $requests = DocumentRequest::with('user:id,name,email')
+            ->orderBy('submitted_at', 'desc')
+            ->get()
+            ->map(function ($request) {
+                return [
+                    'id' => $request->id,
+                    'student_id' => $request->user_id,
+                    'student_name' => $request->user?->name,
+                    'student_email' => $request->user?->email,
+                    'request_type' => $request->request_type,
+                    'purpose' => $request->purpose,
+                    'notes' => $request->notes,
+                    'status' => $request->status,
+                    'remarks' => $request->remarks,
+                    'submitted_at' => $request->submitted_at,
+                    'completed_at' => $request->completed_at,
+                ];
+            });
+
+        return response()->json([
+            'message' => 'Student document requests retrieved successfully',
+            'data' => $requests,
+            'total' => $requests->count(),
         ], 200);
     }
 }

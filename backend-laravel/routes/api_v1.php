@@ -5,7 +5,9 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\Api\V1\StudentController;
 use App\Http\Controllers\Api\V1\DashboardController;
 use App\Http\Controllers\Api\V1\DocumentRequestController;
+use App\Http\Controllers\Api\V1\CertificateController;
 use App\Http\Controllers\Api\V1\AdminController;
+use App\Http\Controllers\Api\V1\MessageController;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\Route;
@@ -31,6 +33,35 @@ Route::middleware(['auth:sanctum', 'role:student'])->group(function () {
 	Route::put('/student/appointments/{id}', [StudentController::class, 'updateAppointmentRequest']);
 	Route::delete('/student/appointments/{id}', [StudentController::class, 'deleteAppointmentRequest']);
 	Route::get('/counselors', [StudentController::class, 'getCounselors']);
+	Route::get('/admin/counselors', [AdminController::class, 'getCounselors']);
+});
+
+// Student document requests
+Route::middleware(['auth:sanctum', 'role:student'])->group(function () {
+	Route::post('/documents', [DocumentRequestController::class, 'store']);
+	Route::get('/documents', [DocumentRequestController::class, 'index']);
+	Route::get('/documents/{id}', [DocumentRequestController::class, 'show']);
+});
+
+// Student certificate requests
+Route::middleware(['auth:sanctum', 'role:student'])->group(function () {
+	Route::post('/student/certificate-request', [CertificateController::class, 'store']);
+	Route::get('/student/certificate-requests', [CertificateController::class, 'getStudentRequests']);
+});
+
+// Counselor document request approval
+Route::middleware(['auth:sanctum', 'role:guidance'])->group(function () {
+	Route::get('/counselor/student-requests', [AdminController::class, 'getStudentDocumentRequests']);
+	Route::put('/documents/{id}/approve', [DocumentRequestController::class, 'approve']);
+	Route::put('/documents/{id}/reject', [DocumentRequestController::class, 'reject']);
+});
+
+// Counselor certificate request approval
+Route::middleware(['auth:sanctum', 'role:guidance'])->group(function () {
+	Route::get('/counselor/certificate-requests', [CertificateController::class, 'getCounselorRequests']);
+	Route::put('/certificate-requests/{id}/approve', [CertificateController::class, 'approve']);
+	Route::put('/certificate-requests/{id}/reject', [CertificateController::class, 'reject']);
+	Route::put('/certificate-requests/{id}/status', [CertificateController::class, 'updateStatus']);
 });
 
 Route::middleware(['auth:sanctum', 'role:guidance'])->group(function () {
@@ -56,12 +87,50 @@ Route::middleware('auth:sanctum')->put('/user/profile', function (Request $reque
 		'name' => ['required', 'string', 'max:255'],
 		'email' => ['required', 'email', 'max:255', Rule::unique('users')->ignore($user->id)],
 		'address' => ['nullable', 'string', 'max:500'],
+		'phone' => ['nullable', 'string', 'max:20'],
+		'year' => ['nullable', 'string', 'max:255'],
+		'bio' => ['nullable', 'string', 'max:1000'],
+		'date_of_birth' => ['nullable', 'date'],
+		'grade_level' => ['nullable', 'string', 'max:50'],
+		'guardian_name' => ['nullable', 'string', 'max:255'],
+		'guardian_contact' => ['nullable', 'string', 'max:20'],
 	]);
 
-	// only fill allowed fields
-	$user->name = $data['name'];
-	$user->email = $data['email'];
-	$user->address = $data['address'] ?? null;
+	// Fill only allowed fields
+	$user->fill([
+		'name' => $data['name'],
+		'email' => $data['email'],
+		'address' => $data['address'] ?? null,
+		'phone' => $data['phone'] ?? null,
+		'year' => $data['year'] ?? null,
+		'bio' => $data['bio'] ?? null,
+		'date_of_birth' => $data['date_of_birth'] ?? null,
+		'grade_level' => $data['grade_level'] ?? null,
+		'guardian_name' => $data['guardian_name'] ?? null,
+		'guardian_contact' => $data['guardian_contact'] ?? null,
+	]);
+
+	// Handle profile picture upload
+	if ($request->hasFile('profile_picture')) {
+		$file = $request->file('profile_picture');
+		
+		// Check if file has image in its mime type (accepts any image format)
+		$mimeType = $file->getMimeType();
+		
+		if (strpos($mimeType, 'image/') !== 0) {
+			return response()->json(['message' => 'Profile picture must be an image file'], 422);
+		}
+		
+		// Delete old picture if exists
+		if ($user->profile_picture_path && file_exists(storage_path('app/public/' . $user->profile_picture_path))) {
+			unlink(storage_path('app/public/' . $user->profile_picture_path));
+		}
+		
+		$path = $file->store('profile_pictures', 'public');
+		$user->profile_picture_path = $path;
+		$user->profile_picture = $path; // Also set profile_picture field
+	}
+
 	$user->save();
 
 	return response()->json(['message' => 'Profile updated', 'user' => $user]);
@@ -82,6 +151,14 @@ Route::middleware(['auth:sanctum', 'role:admin'])->group(function () {
 Route::middleware(['auth:sanctum', 'role:guidance'])->group(function () {
 	Route::get('/admin/students', [AdminController::class, 'getStudents']);
 	Route::get('/admin/counselors', [AdminController::class, 'getCounselors']);
+});
+
+// Message routes - available to authenticated users (students and counselors)
+Route::middleware('auth:sanctum')->group(function () {
+	Route::get('/messages/{studentId}/{counselorId}', [MessageController::class, 'getMessages']);
+	Route::post('/messages', [MessageController::class, 'sendMessage']);
+	Route::get('/messages', [MessageController::class, 'getUserMessages']);
+	Route::put('/messages/{id}/read', [MessageController::class, 'markAsRead']);
 });
 
 //Public Routes

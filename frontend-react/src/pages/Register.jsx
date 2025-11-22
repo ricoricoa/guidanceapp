@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { register } from "../api/Auth";
-import { User, Mail, Lock, CheckCircle, AlertCircle, Loader, Eye, EyeOff } from "lucide-react";
+import { User, Mail, Lock, CheckCircle, AlertCircle, Loader, Eye, EyeOff, Leaf } from "lucide-react";
 
 export default function Register() {
   const navigate = useNavigate();
@@ -78,26 +78,74 @@ export default function Register() {
     return "Strong";
   };
 
+  // Floating decorative elements
+  const FloatingLeaf = ({ delay, left, size }) => (
+    <div
+      className="absolute animate-float text-green-300 dark:text-green-600 opacity-30"
+      style={{
+        animationDelay: `${delay}s`,
+        left: `${left}%`,
+        top: "-10px"
+      }}
+    >
+      <Leaf size={size} />
+    </div>
+  );
+
   return (
-    <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800 px-4 py-8">
-      <div className="w-full max-w-md">
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl overflow-hidden">
+    <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-green-50 via-emerald-50 to-teal-50 dark:from-gray-900 dark:via-green-900 dark:to-teal-900 px-4 relative overflow-hidden">
+      
+      <style>{`
+        @keyframes float {
+          0%, 100% { transform: translateY(0px) rotate(0deg); }
+          50% { transform: translateY(-20px) rotate(5deg); }
+        }
+        @keyframes pulse-glow {
+          0%, 100% { box-shadow: 0 0 20px rgba(34, 197, 94, 0.3); }
+          50% { box-shadow: 0 0 30px rgba(34, 197, 94, 0.5); }
+        }
+        @keyframes slide-up {
+          from { opacity: 0; transform: translateY(20px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-float {
+          animation: float 4s ease-in-out infinite;
+        }
+        .pulse-glow {
+          animation: pulse-glow 3s ease-in-out infinite;
+        }
+        .animate-slide-up {
+          animation: slide-up 0.6s ease-out;
+        }
+      `}</style>
+
+      {/* Decorative floating leaves */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <FloatingLeaf delay={0} left={5} size={32} />
+        <FloatingLeaf delay={2} left={15} size={28} />
+        <FloatingLeaf delay={4} left={85} size={30} />
+        <FloatingLeaf delay={1} left={90} size={26} />
+      </div>
+
+      <div className="w-full max-w-md relative z-10 animate-slide-up">
+        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl overflow-hidden border-2 border-green-100 dark:border-green-700">
           {/* Header */}
-          <div className="bg-gradient-to-r from-green-600 to-emerald-600 px-6 py-8">
-            <div className="text-center mb-2">
-              <div className="inline-flex items-center justify-center w-14 h-14 bg-white dark:bg-gray-800 rounded-full mb-3">
-                <User className="w-7 h-7 text-green-600" />
+          <div className="bg-gradient-to-r from-green-600 via-emerald-600 to-teal-600 dark:from-green-700 dark:via-emerald-700 dark:to-teal-700 px-6 py-10">
+            <div className="text-center mb-3">
+              <div className="inline-flex items-center justify-center w-16 h-16 bg-white dark:bg-gray-800 rounded-full mb-3 pulse-glow">
+                <span className="text-3xl">🌿</span>
               </div>
             </div>
-            <h1 className="text-2xl font-bold text-white text-center">Create Account</h1>
-            <p className="text-green-100 text-center text-sm mt-2">Join our guidance management system</p>
+            <h1 className="text-3xl font-bold text-white text-center">Create Account</h1>
+            <p className="text-green-100 text-center text-sm mt-1 font-semibold">MSU Bongabong Guidance Office</p>
+            <p className="text-green-50 text-center text-xs mt-2">Join our student support system</p>
           </div>
 
           {/* Form */}
           <form onSubmit={handleSubmit} className="px-6 py-8">
             {/* General Error */}
             {errors.general && (
-              <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-lg flex items-start gap-2">
+              <div className="mb-4 p-4 bg-red-50 dark:bg-red-900/30 border-2 border-red-200 dark:border-red-800 rounded-lg flex items-start gap-2 animate-slide-up">
                 <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
                 <p className="text-red-800 dark:text-red-200 text-sm">{errors.general}</p>
               </div>
@@ -106,75 +154,75 @@ export default function Register() {
             {/* Full Name */}
             <div className="mb-4">
               <label className="block text-sm font-semibold text-gray-700 dark:text-gray-200 mb-2">
-                Full Name
+                👤 Full Name
               </label>
               <div className="relative">
-                <User className="absolute left-3 top-3 text-gray-400 w-5 h-5" />
+                <User className="absolute left-3 top-3.5 text-green-500 w-5 h-5" />
                 <input
                   type="text"
                   name="name"
                   placeholder="John Doe"
                   value={formData.name}
                   onChange={handleChange}
-                  className={`w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 dark:bg-gray-700 dark:text-white transition ${
+                  className={`w-full pl-10 pr-4 py-3 border-2 rounded-lg focus:outline-none focus:ring-2 dark:bg-gray-700 dark:text-white transition-all duration-300 ${
                     errors.name
                       ? "border-red-500 focus:ring-red-500"
-                      : "border-gray-300 dark:border-gray-600 focus:ring-green-500 dark:focus:ring-green-400"
+                      : "border-green-200 dark:border-green-700 focus:ring-green-500 dark:focus:ring-green-400 hover:border-green-300"
                   }`}
                   required
                 />
               </div>
-              {errors.name && <p className="mt-1 text-sm text-red-600">{errors.name[0]}</p>}
+              {errors.name && <p className="mt-1 text-sm text-red-600">❌ {errors.name[0]}</p>}
             </div>
 
             {/* Email */}
             <div className="mb-4">
               <label className="block text-sm font-semibold text-gray-700 dark:text-gray-200 mb-2">
-                Email Address
+                📧 Email Address
               </label>
               <div className="relative">
-                <Mail className="absolute left-3 top-3 text-gray-400 w-5 h-5" />
+                <Mail className="absolute left-3 top-3.5 text-green-500 w-5 h-5" />
                 <input
                   type="email"
                   name="email"
                   placeholder="you@example.com"
                   value={formData.email}
                   onChange={handleChange}
-                  className={`w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 dark:bg-gray-700 dark:text-white transition ${
+                  className={`w-full pl-10 pr-4 py-3 border-2 rounded-lg focus:outline-none focus:ring-2 dark:bg-gray-700 dark:text-white transition-all duration-300 ${
                     errors.email
                       ? "border-red-500 focus:ring-red-500"
-                      : "border-gray-300 dark:border-gray-600 focus:ring-green-500 dark:focus:ring-green-400"
+                      : "border-green-200 dark:border-green-700 focus:ring-green-500 dark:focus:ring-green-400 hover:border-green-300"
                   }`}
                   required
                 />
               </div>
-              {errors.email && <p className="mt-1 text-sm text-red-600">{errors.email[0]}</p>}
+              {errors.email && <p className="mt-1 text-sm text-red-600">❌ {errors.email[0]}</p>}
             </div>
 
             {/* Password */}
             <div className="mb-4">
               <label className="block text-sm font-semibold text-gray-700 dark:text-gray-200 mb-2">
-                Password
+                🔐 Password
               </label>
               <div className="relative">
-                <Lock className="absolute left-3 top-3 text-gray-400 w-5 h-5" />
+                <Lock className="absolute left-3 top-3.5 text-green-500 w-5 h-5" />
                 <input
                   type={showPassword ? "text" : "password"}
                   name="password"
                   placeholder="••••••••"
                   value={formData.password}
                   onChange={handleChange}
-                  className={`w-full pl-10 pr-10 py-2 border rounded-lg focus:outline-none focus:ring-2 dark:bg-gray-700 dark:text-white transition ${
+                  className={`w-full pl-10 pr-10 py-3 border-2 rounded-lg focus:outline-none focus:ring-2 dark:bg-gray-700 dark:text-white transition-all duration-300 ${
                     errors.password
                       ? "border-red-500 focus:ring-red-500"
-                      : "border-gray-300 dark:border-gray-600 focus:ring-green-500 dark:focus:ring-green-400"
+                      : "border-green-200 dark:border-green-700 focus:ring-green-500 dark:focus:ring-green-400 hover:border-green-300"
                   }`}
                   required
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-3 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                  className="absolute right-3 top-3.5 text-green-500 hover:text-green-600 dark:hover:text-green-400 transition-colors"
                 >
                   {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                 </button>
@@ -185,59 +233,59 @@ export default function Register() {
                 <div className="mt-2">
                   <div className="flex gap-1 mb-1">
                     {[...Array(4)].map((_, i) => (
-                      <div key={i} className={`h-1 flex-1 rounded ${i < passwordStrength ? getStrengthColor() : "bg-gray-300 dark:bg-gray-600"}`}></div>
+                      <div key={i} className={`h-2 flex-1 rounded-full transition-all ${i < passwordStrength ? getStrengthColor() : "bg-gray-300 dark:bg-gray-600"}`}></div>
                     ))}
                   </div>
                   <p className="text-xs text-gray-600 dark:text-gray-400">
-                    Password strength: <span className={`font-semibold ${getStrengthColor().replace('bg-', 'text-')}`}>{getStrengthText()}</span>
+                    Strength: <span className={`font-bold ${getStrengthColor().replace('bg-', 'text-')}`}>{getStrengthText()}</span>
                   </p>
                 </div>
               )}
               
-              {errors.password && <p className="mt-1 text-sm text-red-600">{errors.password[0]}</p>}
+              {errors.password && <p className="mt-1 text-sm text-red-600">❌ {errors.password[0]}</p>}
             </div>
 
             {/* Confirm Password */}
             <div className="mb-4">
               <label className="block text-sm font-semibold text-gray-700 dark:text-gray-200 mb-2">
-                Confirm Password
+                🔐 Confirm Password
               </label>
               <div className="relative">
-                <Lock className="absolute left-3 top-3 text-gray-400 w-5 h-5" />
+                <Lock className="absolute left-3 top-3.5 text-green-500 w-5 h-5" />
                 <input
                   type={showConfirmPassword ? "text" : "password"}
                   name="password_confirmation"
                   placeholder="••••••••"
                   value={formData.password_confirmation}
                   onChange={handleChange}
-                  className={`w-full pl-10 pr-10 py-2 border rounded-lg focus:outline-none focus:ring-2 dark:bg-gray-700 dark:text-white transition ${
+                  className={`w-full pl-10 pr-10 py-3 border-2 rounded-lg focus:outline-none focus:ring-2 dark:bg-gray-700 dark:text-white transition-all duration-300 ${
                     errors.password_confirmation
                       ? "border-red-500 focus:ring-red-500"
-                      : "border-gray-300 dark:border-gray-600 focus:ring-green-500 dark:focus:ring-green-400"
+                      : "border-green-200 dark:border-green-700 focus:ring-green-500 dark:focus:ring-green-400 hover:border-green-300"
                   }`}
                   required
                 />
                 <button
                   type="button"
                   onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                  className="absolute right-3 top-3 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                  className="absolute right-3 top-3.5 text-green-500 hover:text-green-600 dark:hover:text-green-400 transition-colors"
                 >
                   {showConfirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                 </button>
               </div>
-              {errors.password_confirmation && <p className="mt-1 text-sm text-red-600">{errors.password_confirmation[0]}</p>}
+              {errors.password_confirmation && <p className="mt-1 text-sm text-red-600">❌ {errors.password_confirmation[0]}</p>}
             </div>
 
             {/* Role Selection */}
             <div className="mb-6">
               <label className="block text-sm font-semibold text-gray-700 dark:text-gray-200 mb-3">
-                I am a
+                👥 I am a
               </label>
               <div className="grid grid-cols-2 gap-3">
-                <label className={`p-3 border-2 rounded-lg cursor-pointer transition ${
+                <label className={`p-3 border-2 rounded-lg cursor-pointer transition-all duration-300 ${
                   formData.role === "student"
-                    ? "border-green-500 bg-green-50 dark:bg-green-900/20"
-                    : "border-gray-300 dark:border-gray-600 hover:border-green-300"
+                    ? "border-green-500 bg-green-50 dark:bg-green-900/20 shadow-md"
+                    : "border-green-200 dark:border-green-700 hover:border-green-300"
                 }`}>
                   <input
                     type="radio"
@@ -248,14 +296,14 @@ export default function Register() {
                     className="sr-only"
                   />
                   <div className="flex items-center justify-center">
-                    <span className="font-medium text-gray-700 dark:text-gray-200">Student</span>
+                    <span className="font-medium text-green-700 dark:text-green-300">👨‍🎓 Student</span>
                   </div>
                 </label>
 
-                <label className={`p-3 border-2 rounded-lg cursor-pointer transition ${
+                <label className={`p-3 border-2 rounded-lg cursor-pointer transition-all duration-300 ${
                   formData.role === "guidance"
-                    ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20"
-                    : "border-gray-300 dark:border-gray-600 hover:border-blue-300"
+                    ? "border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20 shadow-md"
+                    : "border-green-200 dark:border-green-700 hover:border-green-300"
                 }`}>
                   <input
                     type="radio"
@@ -266,7 +314,7 @@ export default function Register() {
                     className="sr-only"
                   />
                   <div className="flex items-center justify-center">
-                    <span className="font-medium text-gray-700 dark:text-gray-200">Counselor</span>
+                    <span className="font-medium text-emerald-700 dark:text-emerald-300">💼 Counselor</span>
                   </div>
                 </label>
               </div>
@@ -276,17 +324,16 @@ export default function Register() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-2 px-4 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-semibold rounded-lg transition duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+              className="w-full py-3 px-4 bg-gradient-to-r from-green-600 via-emerald-600 to-teal-600 hover:from-green-700 hover:via-emerald-700 hover:to-teal-700 text-white font-bold rounded-lg transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center hover:shadow-lg hover:scale-105 transform pulse-glow"
             >
               {loading ? (
                 <>
-                  <Loader className="w-4 h-4 mr-2 animate-spin" />
+                  <Loader className="w-5 h-5 mr-2 animate-spin" />
                   Creating Account...
                 </>
               ) : (
                 <>
-                  <CheckCircle className="w-4 h-4 mr-2" />
-                  Create Account
+                  ✨ Create Account
                 </>
               )}
             </button>
@@ -294,19 +341,19 @@ export default function Register() {
             {/* Divider */}
             <div className="relative my-6">
               <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-gray-300 dark:border-gray-600"></div>
+                <div className="w-full border-t border-green-200 dark:border-green-700"></div>
               </div>
               <div className="relative flex justify-center text-sm">
-                <span className="px-2 bg-white dark:bg-gray-800 text-gray-500">Already have an account?</span>
+                <span className="px-2 bg-white dark:bg-gray-800 text-green-600 dark:text-green-400 font-semibold">Already have an account?</span>
               </div>
             </div>
 
             {/* Login Link */}
             <Link
               to="/login"
-              className="w-full py-2 px-4 border-2 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 font-semibold rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition duration-200 text-center block"
+              className="w-full py-3 px-4 border-2 border-green-300 dark:border-green-700 text-green-700 dark:text-green-300 font-bold rounded-lg hover:bg-green-50 dark:hover:bg-green-900/20 transition-all duration-300 text-center block hover:border-green-500 dark:hover:border-green-500 hover:scale-105 transform"
             >
-              Sign In
+              Sign In 🌿
             </Link>
           </form>
         </div>

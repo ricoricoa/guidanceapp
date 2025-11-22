@@ -14,16 +14,50 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // User::factory(10)->create();
-        /**
-         *  User::factory()->create([
-         *    'name' => 'Test User',
-         *    'email' => 'test@example.com',
-         * ]);
-         */
+        // Create test admin user
+        User::create([
+            'name' => 'Admin User',
+            'email' => 'admin@example.com',
+            'password' => bcrypt('password'),
+            'role' => 'admin',
+        ]);
 
+        // Create test counselor user
+        User::create([
+            'name' => 'John Counselor',
+            'email' => 'counselor@example.com',
+            'password' => bcrypt('password'),
+            'role' => 'guidance',
+        ]);
+
+        // Create test student user
+        User::create([
+            'name' => 'Jane Student',
+            'email' => 'student@example.com',
+            'password' => bcrypt('password'),
+            'role' => 'student',
+            'counselor_id' => 2,
+        ]);
+
+        // Create additional test students
+        User::create([
+            'name' => 'Bob Student',
+            'email' => 'bob@example.com',
+            'password' => bcrypt('password'),
+            'role' => 'student',
+            'counselor_id' => 2,
+        ]);
+
+        User::create([
+            'name' => 'Alice Student',
+            'email' => 'alice@example.com',
+            'password' => bcrypt('password'),
+            'role' => 'student',
+            'counselor_id' => 2,
+        ]);
+
+        // Create car data
         Car::truncate();
-        $faker = \Faker\Factory::create();
         $cars = [
             'Toyota' => ['Camry', 'Corolla', 'RAV4', 'Highlander', 'Prius'],
             'Honda' => ['Civic', 'Accord', 'CR-V', 'Pilot', 'HR-V'],

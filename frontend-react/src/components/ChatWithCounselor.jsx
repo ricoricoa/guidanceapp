@@ -37,10 +37,12 @@ export const ChatWithCounselor = () => {
       try {
         // Try the main endpoint first
         const res = await api.get('/api/v1/admin/counselors');
+        console.log('Counselors from /api/v1/admin/counselors:', res.data);
         if (mounted) {
           let counselorList = res.data?.data || [];
           
           if (Array.isArray(counselorList) && counselorList.length > 0) {
+            console.log('Using counselors from API:', counselorList);
             setCounselors(counselorList);
             setLoading(false);
             return;
@@ -53,10 +55,12 @@ export const ChatWithCounselor = () => {
       // Fallback - try the student counselors endpoint
       try {
         const res2 = await api.get('/api/v1/counselors');
+        console.log('Counselors from /api/v1/counselors:', res2.data);
         if (mounted) {
           let counselorList = res2.data?.counselors || res2.data?.data || [];
           
           if (Array.isArray(counselorList) && counselorList.length > 0) {
+            console.log('Using counselors from /api/v1/counselors:', counselorList);
             setCounselors(counselorList);
             setLoading(false);
             return;
@@ -68,11 +72,11 @@ export const ChatWithCounselor = () => {
 
       // If both fail, use mock data
       if (mounted) {
-        setCounselors([
-          { id: 2, name: 'Maria Santos', email: 'counselor1@example.com', status: 'active' },
-          { id: 3, name: 'John Cruz', email: 'counselor2@example.com', status: 'active' },
-          { id: 4, name: 'Anna Garcia', email: 'counselor3@example.com', status: 'active' },
-        ]);
+        const mockCounselors = [
+          { id: 2, name: 'John Counselor', email: 'counselor@example.com', status: 'active' },
+        ];
+        console.log('Using mock counselors:', mockCounselors);
+        setCounselors(mockCounselors);
         setLoading(false);
       }
     };
@@ -83,68 +87,138 @@ export const ChatWithCounselor = () => {
   // Load chat history when counselor selected
   useEffect(() => {
     if (selectedCounselor) {
+      console.log('Loading chat history for counselor:', selectedCounselor);
       loadChatHistory();
     }
   }, [selectedCounselor]);
 
+  // Auto-select first counselor when list loads
+  useEffect(() => {
+    if (counselors.length > 0 && !selectedCounselor) {
+      console.log('Auto-selecting first counselor:', counselors[0]);
+      setSelectedCounselor(counselors[0]);
+    }
+  }, [counselors]);
+
   const loadChatHistory = async () => {
     try {
-      // Use the actual current user ID
-      const studentId = currentUser?.id || 1;
-      const counselorId = selectedCounselor?.id || 1;
+      const studentId = currentUser?.id;
+      const counselorId = selectedCounselor?.id;
       
-      // Try to find messages between this student and this specific counselor
-      let allMessages = [];
-      const savedMessages = JSON.parse(localStorage.getItem(`chat_student_${studentId}_counselor_${counselorId}`) || '[]');
-      
-      if (savedMessages.length > 0) {
-        setMessages(savedMessages);
-      } else {
-        // No messages yet
-        setMessages([]);
+      if (!studentId || !counselorId) {
+        console.log('Cannot load messages - missing studentId or counselorId');
+        return;
       }
+
+      console.log(`Loading messages for student ${studentId} and counselor ${counselorId}`);
+      
+      // Fetch messages from backend API
+      const response = await api.get(`/api/v1/messages/${studentId}/${counselorId}`);
+      const apiMessages = response.data?.data || [];
+      
+      console.log('API Messages:', apiMessages);
+      
+      // Format messages for display
+      const formattedMessages = apiMessages.map(msg => {
+        let displayTime = msg.timestamp || '';
+        if (msg.created_at) {
+          try {
+            const date = new Date(msg.created_at);
+            displayTime = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+          } catch (e) {
+            displayTime = msg.created_at;
+          }
+        }
+
+        return {
+          id: msg.id,
+          sender: msg.sender,
+          senderName: msg.sender === 'student' ? currentUser.name : selectedCounselor.name,
+          text: msg.text || msg.message,
+          timestamp: displayTime,
+          read: msg.read
+        };
+      });
+
+      console.log('Formatted messages:', formattedMessages);
+      setMessages(formattedMessages);
     } catch (err) {
       console.error('Error loading chat history:', err);
-      setMessages([]);
+      // If API fails, try localStorage as fallback
+      try {
+        const studentId = currentUser?.id;
+        const counselorId = selectedCounselor?.id;
+        const savedMessages = JSON.parse(localStorage.getItem(`chat_student_${studentId}_counselor_${counselorId}`) || '[]');
+        setMessages(savedMessages);
+      } catch (e) {
+        setMessages([]);
+      }
     }
   };
 
   const handleSendMessage = async (e) => {
     e.preventDefault();
-    if (!newMessage.trim() || !selectedCounselor || !currentUser) return;
+    if (!newMessage.trim() || !selectedCounselor || !currentUser) {
+      console.log('Cannot send message - missing required data');
+      return;
+    }
 
     const studentId = currentUser.id;
     const counselorId = selectedCounselor.id;
 
-    const messageObj = {
-      id: messages.length + 1,
-      sender: 'student',
-      senderName: currentUser.name,
-      text: newMessage,
-      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      read: false
-    };
+    console.log(`Sending message from student ${studentId} to counselor ${counselorId}`);
 
-    const updatedMessages = [...messages, messageObj];
-    setMessages(updatedMessages);
-    setNewMessage('');
-
-    // Save to localStorage with consistent key format using real IDs
-    localStorage.setItem(`chat_student_${studentId}_counselor_${counselorId}`, JSON.stringify(updatedMessages));
-
-    // In production, send to backend
     try {
-      // await api.post(`/api/v1/counselors/${counselorId}/messages`, {
-      //   message: newMessage
-      // });
+      // Send message via backend API
+      const response = await api.post('/api/v1/messages', {
+        recipient_id: counselorId,
+        message: newMessage
+      });
+
+      console.log('Message sent response:', response.data);
+
+      if (response.data?.data) {
+        // Add the message to the local state
+        const messageObj = {
+          id: response.data.data.id,
+          sender: 'student',
+          senderName: currentUser.name,
+          text: response.data.data.text || response.data.data.message,
+          timestamp: response.data.data.created_at ? new Date(response.data.data.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'just now',
+          read: false
+        };
+
+        const updatedMessages = [...messages, messageObj];
+        setMessages(updatedMessages);
+        setNewMessage('');
+
+        // Scroll to bottom
+        setTimeout(() => {
+          messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+        }, 100);
+      }
     } catch (err) {
       console.error('Error sending message:', err);
-    }
+      // Fallback to localStorage if API fails
+      const messageObj = {
+        id: messages.length + 1,
+        sender: 'student',
+        senderName: currentUser.name,
+        text: newMessage,
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        read: false
+      };
 
-    // Scroll to bottom
-    setTimeout(() => {
-      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-    }, 100);
+      const updatedMessages = [...messages, messageObj];
+      setMessages(updatedMessages);
+      setNewMessage('');
+
+      localStorage.setItem(`chat_student_${studentId}_counselor_${counselorId}`, JSON.stringify(updatedMessages));
+
+      setTimeout(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+      }, 100);
+    }
   };
 
   const formatTime = (date) => {
@@ -312,10 +386,14 @@ export const ChatWithCounselor = () => {
                 />
                 <button
                   type="submit"
-                  disabled={!newMessage.trim()}
-                  className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                  className={`px-4 py-2 rounded-lg transition flex items-center gap-2 font-semibold ${
+                    newMessage.trim()
+                      ? 'bg-indigo-600 text-white hover:bg-indigo-700 cursor-pointer'
+                      : 'bg-gray-300 text-gray-500 cursor-not-allowed opacity-50'
+                  }`}
                 >
                   <Send className="w-5 h-5" />
+                  Send
                 </button>
               </form>
             </div>

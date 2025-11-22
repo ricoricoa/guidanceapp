@@ -23,8 +23,17 @@ class User extends Authenticatable
         'email',
         'role',
         'address',
+        'phone',
+        'year',
+        'bio',
+        'profile_picture_path',
+        'profile_picture',
         'password',
         'counselor_id',
+        'date_of_birth',
+        'grade_level',
+        'guardian_name',
+        'guardian_contact',
     ];
 
     /**
@@ -55,6 +64,17 @@ class User extends Authenticatable
         return $this->hasMany(DocumentRequest::class);
     }
 
+    public function certificateRequests()
+    {
+        return $this->hasMany(CertificateRequest::class);
+    }
+
+    // Relationship for counselor requests where this user is the counselor
+    public function counselorRequests()
+    {
+        return $this->hasMany(CounselorRequest::class, 'counselor_id', 'id');
+    }
+
     // Relationship for students created by this counselor
     public function students()
     {
@@ -66,5 +86,25 @@ class User extends Authenticatable
     public function counselor()
     {
         return $this->belongsTo(User::class, 'counselor_id', 'id');
+    }
+
+    // Relationship for messages where user is the student
+    public function messagesAsStudent()
+    {
+        return $this->hasMany(Message::class, 'student_id', 'id');
+    }
+
+    // Relationship for messages where user is the counselor
+    public function messagesAsCounselor()
+    {
+        return $this->hasMany(Message::class, 'counselor_id', 'id');
+    }
+
+    // Get all messages for a user (both sent and received)
+    public function allMessages()
+    {
+        return Message::where('student_id', $this->id)
+            ->orWhere('counselor_id', $this->id)
+            ->orderBy('created_at', 'desc');
     }
 }

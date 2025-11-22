@@ -2,12 +2,22 @@ import api from "./axios";
 
 // Ensure Sanctum CSRF cookie is set before making auth requests
 export const getCsrf = async () => {
-  return api.get('/sanctum/csrf-cookie');
+  try {
+    return api.get('/sanctum/csrf-cookie');
+  } catch (error) {
+    console.warn('CSRF cookie endpoint not available, continuing without it', error.message);
+    return null;
+  }
 };
 
 export const login = async (email, password) => {
-  // request CSRF cookie first
-  await getCsrf();
+  // Try to request CSRF cookie first (optional for token-based auth)
+  try {
+    await getCsrf();
+  } catch (error) {
+    console.warn('CSRF cookie request failed, continuing with login', error.message);
+  }
+  
   const response = await api.post('/api/login', { email, password });
   
   // Store token if received
@@ -25,7 +35,12 @@ export const login = async (email, password) => {
 };
 
 export const register = async (data) => {
-  await getCsrf();
+  try {
+    await getCsrf();
+  } catch (error) {
+    console.warn('CSRF cookie request failed, continuing with registration', error.message);
+  }
+  
   return api.post('/api/register', data);
 };
 
