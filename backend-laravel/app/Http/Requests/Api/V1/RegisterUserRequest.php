@@ -27,6 +27,7 @@ class RegisterUserRequest extends FormRequest
             'password' => 'required|string|min:8|confirmed',
             'role' => 'nullable|string|in:student,guidance,counselor',
             'address' => 'nullable|string|max:500',
+            'counselor_id' => 'nullable|integer|exists:users,id',
         ];
     }
 }

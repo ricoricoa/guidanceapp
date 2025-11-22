@@ -87,7 +87,21 @@ const CounselorDashboard = () => {
       try {
         const res = await api.get('/api/v1/appointments');
         if (mounted && res.data?.data) {
-          setAppointments(res.data.data);
+          // Transform CounselorRequest data to match our expected structure
+          const appointmentsData = Array.isArray(res.data.data) 
+            ? res.data.data.map(apt => ({
+                id: apt.id,
+                student_id: apt.student_id,
+                student_name: apt.student?.name || 'Unknown',
+                student_email: apt.student?.email || 'N/A',
+                topic: apt.topic,
+                status: apt.status,
+                requested_date: apt.requested_date,
+                requested_time: apt.requested_time,
+                notes: apt.notes || '',
+              }))
+            : [];
+          setAppointments(appointmentsData);
         }
       } catch (err) {
         console.error('Error fetching appointments:', err);

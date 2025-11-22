@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\V1\LoginUserRequest;
 use App\Http\Requests\Api\V1\RegisterUserRequest;
 use App\Models\User;
+use App\Models\LoginHistory;
 use App\Traits\ApiResponses;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -30,6 +31,14 @@ class AuthController extends Controller
         $user = Auth::user();
         \Log::info('Login successful', ['user_id' => $user->id, 'email' => $user->email, 'role' => $user->role]);
         
+        // Record login history
+        LoginHistory::create([
+            'user_id' => $user->id,
+            'login_time' => now(),
+            'ip_address' => $request->ip(),
+            'user_agent' => $request->userAgent(),
+        ]);
+        
         // Create a Sanctum token for API authentication
         $token = $user->createToken('api-token')->plainTextToken;
         
@@ -46,8 +55,17 @@ class AuthController extends Controller
     
     public function logout(Request $request)
     {
+        $user = $request->user();
+        
+        // Update the latest login history record with logout time
+        LoginHistory::where('user_id', $user->id)
+            ->whereNull('logout_time')
+            ->latest('login_time')
+            ->first()
+            ?->update(['logout_time' => now()]);
+        
         // Delete the current token
-        $request->user()->currentAccessToken()->delete();
+        $user->currentAccessToken()->delete();
 
         return $this->ok('Logged out successfully');
     }
@@ -62,6 +80,7 @@ class AuthController extends Controller
             'role' => $data['role'] ?? 'student',
             'password' => Hash::make($data['password']),
             'address' => $data['address'] ?? null,
+            'counselor_id' => $data['counselor_id'] ?? null,
         ]);
 
         return $this->ok(
