@@ -29,7 +29,7 @@ export const ChatWithCounselor = () => {
     return () => { mounted = false; };
   }, []);
 
-  // Fetch counselors
+  // Fetch counselors with auto-refresh
   useEffect(() => {
     let mounted = true;
     const fetchCounselors = async () => {
@@ -81,7 +81,14 @@ export const ChatWithCounselor = () => {
       }
     };
     fetchCounselors();
-    return () => { mounted = false; };
+    
+    // Set up auto-refresh every 5 seconds
+    const interval = setInterval(fetchCounselors, 5000);
+    
+    return () => { 
+      mounted = false;
+      clearInterval(interval);
+    };
   }, []);
 
   // Load chat history when counselor selected

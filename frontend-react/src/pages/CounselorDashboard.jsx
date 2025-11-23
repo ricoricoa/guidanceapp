@@ -161,7 +161,14 @@ const CounselorDashboard = () => {
     };
     
     fetchStudents();
-    return () => (mounted = false);
+    
+    // Set up auto-refresh every 5 seconds to detect new students
+    const interval = setInterval(fetchStudents, 5000);
+    
+    return () => {
+      mounted = false;
+      clearInterval(interval);
+    };
   }, []);
 
   // Auto-load messages when switching between students
