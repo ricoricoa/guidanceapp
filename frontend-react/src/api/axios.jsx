@@ -11,9 +11,14 @@ const api = axios.create({
   withXSRFToken: true,
 });
 
-// Add request interceptor to log requests
+// Add request interceptor to add token and log requests
 api.interceptors.request.use(
   (config) => {
+    // Add token from localStorage if available
+    const token = localStorage.getItem('token');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
     console.log('API Request:', config.method?.toUpperCase(), config.url);
     return config;
   },

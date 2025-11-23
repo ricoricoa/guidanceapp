@@ -148,9 +148,8 @@ Route::middleware(['auth:sanctum', 'role:admin'])->group(function () {
 });
 
 // Counselor routes - access all students for messaging
-Route::middleware(['auth:sanctum', 'role:guidance'])->group(function () {
-	Route::get('/admin/students', [AdminController::class, 'getStudents']);
-	Route::get('/admin/counselors', [AdminController::class, 'getCounselors']);
+Route::middleware(['auth:sanctum', 'role:counselor'])->group(function () {
+	// Counselor-specific routes go here
 });
 
 // Message routes - available to authenticated users (students and counselors)
