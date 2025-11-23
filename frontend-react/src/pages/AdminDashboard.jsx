@@ -26,35 +26,66 @@ const AdminDashboard = () => {
     let mounted = true;
     const fetchData = async () => {
       try {
+        console.log('Fetching admin dashboard data...');
+
         // Fetch dashboard summary
-        const summaryRes = await api.get('/api/v1/admin/dashboard-summary');
-        if (!mounted) return;
-        
-        const u = summaryRes.data?.user ?? summaryRes.data;
-        setUser(u);
+        try {
+          const summaryRes = await api.get('/api/v1/admin/dashboard-summary');
+          if (mounted) {
+            const u = summaryRes.data?.user ?? summaryRes.data;
+            setUser(u);
+            console.log('Dashboard summary:', u);
+          }
+        } catch (err) {
+          console.warn('Dashboard summary failed:', err.message);
+        }
 
         // Fetch all users
-        const usersRes = await api.get('/api/v1/admin/users');
-        if (mounted && usersRes.data?.data) {
-          setAllUsers(usersRes.data.data);
+        try {
+          const usersRes = await api.get('/api/v1/admin/users');
+          console.log('All users response:', usersRes.data);
+          if (mounted && usersRes.data?.data && usersRes.data.data.length > 0) {
+            setAllUsers(usersRes.data.data);
+            console.log('All users loaded:', usersRes.data.data.length);
+          }
+        } catch (err) {
+          console.warn('Users fetch failed:', err.message);
         }
 
         // Fetch counselors
-        const counselorsRes = await api.get('/api/v1/admin/counselors');
-        if (mounted && counselorsRes.data?.data) {
-          setCounselors(counselorsRes.data.data);
+        try {
+          const counselorsRes = await api.get('/api/v1/admin/counselors');
+          console.log('Counselors response:', counselorsRes.data);
+          if (mounted && counselorsRes.data?.data && counselorsRes.data.data.length > 0) {
+            setCounselors(counselorsRes.data.data);
+            console.log('Counselors loaded:', counselorsRes.data.data.length);
+          }
+        } catch (err) {
+          console.warn('Counselors fetch failed:', err.message);
         }
 
         // Fetch students
-        const studentsRes = await api.get('/api/v1/admin/students');
-        if (mounted && studentsRes.data?.data) {
-          setStudents(studentsRes.data.data);
+        try {
+          const studentsRes = await api.get('/api/v1/admin/students');
+          console.log('Students response:', studentsRes.data);
+          if (mounted && studentsRes.data?.data && studentsRes.data.data.length > 0) {
+            setStudents(studentsRes.data.data);
+            console.log('Students loaded:', studentsRes.data.data.length);
+          }
+        } catch (err) {
+          console.warn('Students fetch failed:', err.message);
         }
 
         // Fetch login history with real data from backend
-        const historyRes = await api.get('/api/v1/admin/login-history');
-        if (mounted && historyRes.data?.data) {
-          setLoginHistory(historyRes.data.data);
+        try {
+          const historyRes = await api.get('/api/v1/admin/login-history');
+          console.log('Login history response:', historyRes.data);
+          if (mounted && historyRes.data?.data && historyRes.data.data.length > 0) {
+            setLoginHistory(historyRes.data.data);
+            console.log('Login history loaded:', historyRes.data.data.length);
+          }
+        } catch (err) {
+          console.warn('Login history fetch failed:', err.message);
         }
 
         // Mock reports for now
@@ -64,19 +95,9 @@ const AdminDashboard = () => {
         ]);
 
       } catch (err) {
-        console.error('Error fetching dashboard:', err);
-        // Fallback to mock data if API fails
-        const allMockUsers = [
-          { id: 1, name: 'Maria Santos', email: 'maria@example.com', role: 'counselor', created_at: '2025-11-01', status: 'active' },
-          { id: 2, name: 'John Cruz', email: 'john@example.com', role: 'counselor', created_at: '2025-11-02', status: 'active' },
-          { id: 3, name: 'Anna Garcia', email: 'anna@example.com', role: 'counselor', created_at: '2025-11-03', status: 'active' },
-          { id: 4, name: 'Juan Dela Cruz', email: 'juan@example.com', role: 'student', created_at: '2025-11-05', status: 'active' },
-        ];
-        setAllUsers(allMockUsers);
-        setCounselors(allMockUsers.filter(u => u.role === 'counselor'));
-        setStudents(allMockUsers.filter(u => u.role === 'student'));
+        console.error('Unexpected error fetching dashboard:', err);
       } finally {
-        mounted && setLoading(false);
+        if (mounted) setLoading(false);
       }
     };
 
