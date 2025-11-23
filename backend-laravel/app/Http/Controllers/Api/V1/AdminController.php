@@ -51,7 +51,7 @@ class AdminController extends Controller
      */
     public function getCounselors()
     {
-        $counselors = User::whereIn('role', ['guidance', 'counselor'])
+        $counselors = User::where('role', 'counselor')
             ->select('id', 'name', 'email', 'role', 'created_at')
             ->orderBy('created_at', 'desc')
             ->get()
@@ -106,7 +106,7 @@ class AdminController extends Controller
     public function getDashboardSummary()
     {
         $totalUsers = User::count();
-        $totalCounselors = User::whereIn('role', ['guidance', 'counselor'])->count();
+        $totalCounselors = User::where('role', 'counselor')->count();
         $totalStudents = User::where('role', 'student')->count();
         
         return response()->json([
