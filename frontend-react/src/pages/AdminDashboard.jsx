@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { 
   LogOut, Menu, X, Users, BarChart3, LogIn, AlertCircle, 
   FileText, Search, ChevronDown, Eye, Trash2, Edit, Plus,
-  TrendingUp, UserCheck, Clock
+  TrendingUp, UserCheck, Clock, Star
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import api from '../api/axios';
@@ -18,6 +18,7 @@ const AdminDashboard = () => {
   const [students, setStudents] = useState([]);
   const [loginHistory, setLoginHistory] = useState([]);
   const [reports, setReports] = useState([]);
+  const [reviews, setReviews] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterRole, setFilterRole] = useState('all');
 
@@ -86,6 +87,18 @@ const AdminDashboard = () => {
           }
         } catch (err) {
           console.warn('Login history fetch failed:', err.message);
+        }
+
+        // Fetch counselor reviews
+        try {
+          const reviewsRes = await api.get('/api/v1/admin/reviews');
+          console.log('Reviews response:', reviewsRes.data);
+          if (mounted && reviewsRes.data?.data && reviewsRes.data.data.length > 0) {
+            setReviews(reviewsRes.data.data);
+            console.log('Reviews loaded:', reviewsRes.data.data.length);
+          }
+        } catch (err) {
+          console.warn('Reviews fetch failed:', err.message);
         }
 
         // Mock reports for now
@@ -196,6 +209,7 @@ const AdminDashboard = () => {
     { id: 'counselors', label: 'Counselors', icon: UserCheck },
     { id: 'students', label: 'Students', icon: Users },
     { id: 'login-history', label: 'Login History', icon: LogIn },
+    { id: 'reviews', label: 'Counselor Reviews', icon: Star },
     { id: 'reports', label: 'Reports', icon: BarChart3 },
   ];
 
@@ -205,10 +219,10 @@ const AdminDashboard = () => {
       <div
         className={`${
           sidebarOpen ? 'w-64' : 'w-20'
-        } bg-white dark:bg-gray-800 shadow-lg transition-all duration-300 fixed h-full z-40`}
+        } bg-white dark:bg-gray-800 shadow-lg transition-all duration-300 fixed h-full z-40 flex flex-col border-r border-gray-200 dark:border-gray-700`}
       >
         {/* Logo */}
-        <div className="flex items-center justify-between h-20 px-6 border-b border-gray-200 dark:border-gray-700">
+        <div className="flex items-center justify-between h-20 px-6 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
           {sidebarOpen && (
             <div className="flex items-center gap-2">
               <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center">
@@ -226,7 +240,7 @@ const AdminDashboard = () => {
         </div>
 
         {/* Navigation */}
-        <nav className="mt-8 px-4 space-y-2">
+        <nav className="px-4 space-y-2 flex-1 overflow-y-auto mt-6">
           {sidebarItems.map(item => {
             const Icon = item.icon;
             return (
@@ -247,13 +261,26 @@ const AdminDashboard = () => {
         </nav>
 
         {/* Logout */}
-        <div className="absolute bottom-6 left-0 right-0 px-4">
+        <div className="px-4 pb-4 pt-2 border-t border-gray-200 dark:border-gray-700 flex-shrink-0 space-y-2">
+          {sidebarOpen && (
+            <div className="p-3 bg-gradient-to-br from-indigo-50 to-blue-50 dark:from-indigo-900/20 dark:to-blue-900/20 rounded-lg">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 bg-gradient-to-br from-indigo-600 to-blue-600 rounded-full flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
+                  {user?.name?.charAt(0)?.toUpperCase() || 'A'}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-xs text-gray-600 dark:text-gray-400 uppercase font-semibold">Admin</p>
+                  <p className="text-xs font-semibold text-gray-900 dark:text-white truncate">{user?.name}</p>
+                </div>
+              </div>
+            </div>
+          )}
           <button
             onClick={handleLogout}
-            className="w-full flex items-center gap-4 px-4 py-3 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition"
+            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 dark:from-red-600 dark:to-red-700 dark:hover:from-red-700 dark:hover:to-red-800 text-white rounded-lg transition font-medium transform hover:scale-105 shadow-md text-sm"
           >
-            <LogOut className="w-5 h-5 flex-shrink-0" />
-            {sidebarOpen && <span className="font-medium">Logout</span>}
+            <LogOut className="w-4 h-4 flex-shrink-0" />
+            {sidebarOpen && <span>Logout</span>}
           </button>
         </div>
       </div>
@@ -589,6 +616,62 @@ const AdminDashboard = () => {
                     </div>
                   ))}
                 </div>
+              </div>
+            )}
+
+            {/* Counselor Reviews Tab */}
+            {activeTab === 'reviews' && (
+              <div>
+                <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">Counselor Reviews</h2>
+
+                {reviews.length === 0 ? (
+                  <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-12 text-center">
+                    <Star className="w-16 h-16 text-gray-300 dark:text-gray-600 mx-auto mb-4" />
+                    <p className="text-gray-500 dark:text-gray-400 text-lg">No reviews yet</p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {reviews.map(review => (
+                      <div key={review.id} className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 hover:shadow-lg transition">
+                        <div className="flex items-start justify-between mb-3">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-3 mb-2">
+                              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                                {review.counselor_name}
+                              </h3>
+                              <div className="flex items-center gap-1">
+                                {[...Array(5)].map((_, i) => (
+                                  <Star
+                                    key={i}
+                                    className={`w-5 h-5 ${
+                                      i < review.rating
+                                        ? 'fill-yellow-400 text-yellow-400'
+                                        : 'text-gray-300 dark:text-gray-600'
+                                    }`}
+                                  />
+                                ))}
+                              </div>
+                              <span className="ml-2 text-sm font-medium text-gray-600 dark:text-gray-400">
+                                {review.rating}/5
+                              </span>
+                            </div>
+                            <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+                              By: <strong>{review.student_name}</strong> ({review.student_email})
+                            </p>
+                            {review.comment && (
+                              <p className="text-gray-700 dark:text-gray-300 mb-3 p-3 bg-gray-50 dark:bg-gray-700/50 rounded">
+                                "{review.comment}"
+                              </p>
+                            )}
+                            <div className="text-xs text-gray-500 dark:text-gray-400">
+                              Submitted: {new Date(review.submitted_at).toLocaleDateString()} at {new Date(review.submitted_at).toLocaleTimeString()}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
           </div>

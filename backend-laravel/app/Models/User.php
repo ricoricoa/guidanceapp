@@ -107,4 +107,16 @@ class User extends Authenticatable
             ->orWhere('counselor_id', $this->id)
             ->orderBy('created_at', 'desc');
     }
+
+    // Relationship for reviews written by this student
+    public function reviewsWritten()
+    {
+        return $this->hasMany(CounselorReview::class, 'student_id', 'id');
+    }
+
+    // Relationship for reviews received by this counselor
+    public function reviews()
+    {
+        return $this->hasMany(CounselorReview::class, 'counselor_id', 'id');
+    }
 }

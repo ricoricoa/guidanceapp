@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\V1\DocumentRequestController;
 use App\Http\Controllers\Api\V1\CertificateController;
 use App\Http\Controllers\Api\V1\AdminController;
 use App\Http\Controllers\Api\V1\MessageController;
+use App\Http\Controllers\Api\V1\ReviewController;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\Route;
@@ -49,22 +50,29 @@ Route::middleware(['auth:sanctum', 'role:student'])->group(function () {
 	Route::get('/student/certificate-requests', [CertificateController::class, 'getStudentRequests']);
 });
 
+// Student counselor reviews
+Route::middleware(['auth:sanctum', 'role:student'])->group(function () {
+	Route::get('/reviews/counselors', [ReviewController::class, 'getCounselors']);
+	Route::post('/reviews/store', [ReviewController::class, 'storeReview']);
+	Route::get('/reviews/counselor/{counselorId}', [ReviewController::class, 'getStudentReview']);
+});
+
 // Counselor document request approval
-Route::middleware(['auth:sanctum', 'role:guidance'])->group(function () {
+Route::middleware(['auth:sanctum', 'role:guidance,counselor'])->group(function () {
 	Route::get('/counselor/student-requests', [AdminController::class, 'getStudentDocumentRequests']);
 	Route::put('/documents/{id}/approve', [DocumentRequestController::class, 'approve']);
 	Route::put('/documents/{id}/reject', [DocumentRequestController::class, 'reject']);
 });
 
 // Counselor certificate request approval
-Route::middleware(['auth:sanctum', 'role:guidance'])->group(function () {
+Route::middleware(['auth:sanctum', 'role:guidance,counselor'])->group(function () {
 	Route::get('/counselor/certificate-requests', [CertificateController::class, 'getCounselorRequests']);
 	Route::put('/certificate-requests/{id}/approve', [CertificateController::class, 'approve']);
 	Route::put('/certificate-requests/{id}/reject', [CertificateController::class, 'reject']);
 	Route::put('/certificate-requests/{id}/status', [CertificateController::class, 'updateStatus']);
 });
 
-Route::middleware(['auth:sanctum', 'role:guidance'])->group(function () {
+Route::middleware(['auth:sanctum', 'role:guidance,counselor'])->group(function () {
 	Route::get('/guidance/dashboard', [DashboardController::class, 'guidanceDashboard']);
 	Route::get('/guidance/students', [AdminController::class, 'getStudents']);
 });
@@ -145,6 +153,7 @@ Route::middleware(['auth:sanctum', 'role:admin'])->group(function () {
 	Route::get('/admin/students', [AdminController::class, 'getStudents']);
 	Route::get('/admin/dashboard-summary', [AdminController::class, 'getDashboardSummary']);
 	Route::get('/admin/login-history', [AdminController::class, 'getLoginHistory']);
+	Route::get('/admin/reviews', [ReviewController::class, 'getAllReviews']);
 });
 
 // Counselor routes - access all students for messaging

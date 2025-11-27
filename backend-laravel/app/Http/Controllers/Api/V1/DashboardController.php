@@ -53,7 +53,6 @@ class DashboardController extends Controller
             ->where('status', 'scheduled')
             ->with(['counselor:id,name,email'])
             ->orderBy('requested_date', 'asc')
-            ->limit(3)
             ->get()
             ->map(function ($appt) {
                 return [
@@ -99,15 +98,22 @@ class DashboardController extends Controller
         }
 
         // Get list of students assigned/requesting with this counselor
-        $students = User::whereIn('id', function ($query) use ($user) {
-            $query->select('student_id')
-                ->from('counselor_requests')
-                ->where('counselor_id', $user->id)
-                ->distinct();
-        })
+        // Students can be assigned via counselor_id field OR through counselor_requests
+        $studentIds = User::where('counselor_id', $user->id)
+            ->pluck('id')
+            ->toArray();
+        
+        $requestedStudentIds = CounselorRequest::where('counselor_id', $user->id)
+            ->distinct()
+            ->pluck('student_id')
+            ->toArray();
+        
+        $allStudentIds = array_unique(array_merge($studentIds, $requestedStudentIds));
+        
+        $students = User::whereIn('id', $allStudentIds)
         ->select('id', 'name', 'email', 'created_at')
-        ->withCount(['counselorRequests' => function ($query) {
-            $query->where('counselor_id', auth()->id());
+        ->withCount(['counselorRequests' => function ($query) use ($user) {
+            $query->where('counselor_id', $user->id);
         }])
         ->get()
         ->map(function ($student) {

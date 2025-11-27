@@ -2,12 +2,14 @@ import React, { useEffect, useState, Suspense, lazy } from 'react';
 import api from '../api/axios';
 import { 
   LogOut, Menu, X, Home, Calendar, FileText, MessageSquare, 
-  User, Bell, Search, Clock, CheckCircle, AlertCircle, Flag, Moon, Sun, Plus, Award
+  User, Bell, Search, Clock, CheckCircle, AlertCircle, Flag, Moon, Sun, Plus, Award, Star, Lightbulb
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useTheme } from '../context/ThemeContext';
 import StudentReportForm from '../components/StudentReportForm';
 import { BookAppointmentModal } from '../components/BookAppointmentModal';
+import CounselorReviewsForm from '../components/CounselorReviewsForm';
+import TipsBot from '../components/TipsBot';
 
 // Lazy load ChatWithCounselor to avoid hook conflicts
 const ChatWithCounselor = lazy(() => import('../components/ChatWithCounselor').then(m => ({ default: m.ChatWithCounselor })));
@@ -55,6 +57,7 @@ const StudentDashboard = () => {
   const [profilePicture, setProfilePicture] = useState(null);
   const [profilePicturePreview, setProfilePicturePreview] = useState(null);
   const [saving, setSaving] = useState(false);
+  const [showTipsBot, setShowTipsBot] = useState(false);
 
   // Fetch dashboard data
   useEffect(() => {
@@ -378,7 +381,9 @@ const StudentDashboard = () => {
     { id: 'overview', label: 'Overview', icon: Home },
     { id: 'appointments', label: 'Appointments', icon: Calendar },
     { id: 'messages', label: 'Messages', icon: MessageSquare },
+    { id: 'reviews', label: 'Counselor Reviews', icon: Star },
     { id: 'certificates', label: 'Certificates', icon: Award },
+    { id: 'tips', label: 'Wellness Tips', icon: Lightbulb },
     { id: 'profile', label: 'Profile', icon: User },
   ];
 
@@ -478,6 +483,16 @@ const StudentDashboard = () => {
             >
               <Flag className="w-5 h-5" />
               <span className="hidden sm:inline text-sm font-medium">Send Report</span>
+            </button>
+
+            {/* Wellness Tips Button */}
+            <button
+              onClick={() => setActiveTab('tips')}
+              className="flex items-center gap-2 px-4 py-2 bg-white text-green-600 dark:text-green-700 rounded-lg hover:bg-green-50 transition-all duration-300 font-bold hover:shadow-lg"
+              title="Wellness Tips"
+            >
+              <Lightbulb className="w-5 h-5" />
+              <span className="hidden sm:inline text-sm font-medium">Tips</span>
             </button>
 
             {/* Request Certificates Button */}
@@ -830,6 +845,16 @@ const StudentDashboard = () => {
             </div>
           )}
 
+          {/* Counselor Reviews Tab */}
+          {activeTab === 'reviews' && (
+            <CounselorReviewsForm />
+          )}
+
+          {/* Wellness Tips Tab */}
+          {activeTab === 'tips' && (
+            <TipsBot isOpen={true} onClose={() => setActiveTab('home')} isFullPage={true} />
+          )}
+
           {/* Profile Tab */}
           {activeTab === 'profile' && (
             <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-8 max-w-4xl">
@@ -1143,6 +1168,9 @@ const StudentDashboard = () => {
           </div>
         </div>
       )}
+
+      {/* Tips Bot Modal */}
+      <TipsBot isOpen={showTipsBot} onClose={() => setShowTipsBot(false)} />
     </div>
   );
 };

@@ -44,6 +44,25 @@ const CounselorDashboard = () => {
         
         const u = res.data.data?.user || res.data.user || res.data;
         setUser(u);
+        
+        // Extract students from dashboard data
+        if (res.data.data?.students) {
+          const dashboardStudents = Array.isArray(res.data.data.students) 
+            ? res.data.data.students 
+            : [];
+          // Transform to match expected format
+          const formattedStudents = dashboardStudents.map(s => ({
+            id: s.id,
+            name: s.name,
+            email: s.email,
+            sessions: s.sessions || 0,
+            status: s.status || 'active'
+          }));
+          setStudents(formattedStudents);
+          if (formattedStudents.length > 0) {
+            setSelectedStudent(formattedStudents[0]);
+          }
+        }
       } catch (err) {
         if (!mounted) return;
         if (err.response?.status === 403) {
@@ -125,49 +144,24 @@ const CounselorDashboard = () => {
     return () => (mounted = false);
   }, []);
 
-  // Fetch all students for messaging
+  // Fetch all students for messaging (from dashboard data if available, not all students)
   useEffect(() => {
     let mounted = true;
     const fetchStudents = async () => {
       try {
-        // Fetch all students from the admin endpoint
-        const res = await api.get('/api/v1/admin/students');
-        console.log('Students API response:', res.data);
-        if (mounted && res.data?.data) {
-          const studentsList = Array.isArray(res.data.data) ? res.data.data : [];
-          console.log('Students list:', studentsList);
-          setStudents(studentsList);
-          
-          // Auto-select first student if none selected
-          if (studentsList.length > 0) {
-            console.log('Auto-selecting first student:', studentsList[0]);
-            setSelectedStudent(studentsList[0]);
-          }
-        }
+        // Note: Students are already fetched from the dashboard API
+        // We only fetch additional details if needed
+        // Don't fetch all students - only use the counselor's assigned students
+        console.log('Using students from dashboard data');
       } catch (err) {
         console.error('Error fetching students:', err);
-        // Fallback - use mock data
-        if (mounted) {
-          const mockStudents = [
-            { id: 1, name: 'Juan Dela Cruz', email: 'juan@example.com' },
-            { id: 2, name: 'Maria Santos', email: 'maria@example.com' },
-            { id: 3, name: 'Pedro Reyes', email: 'pedro@example.com' },
-          ];
-          setStudents(mockStudents);
-          console.log('Using mock students:', mockStudents);
-          setSelectedStudent(mockStudents[0]);
-        }
       }
     };
     
     fetchStudents();
     
-    // Set up auto-refresh every 5 seconds to detect new students
-    const interval = setInterval(fetchStudents, 5000);
-    
     return () => {
       mounted = false;
-      clearInterval(interval);
     };
   }, []);
 
@@ -535,22 +529,30 @@ const CounselorDashboard = () => {
           </nav>
         </div>
 
-        {/* Profile Section in Sidebar */}
-        <div className="p-6 border-t border-gray-200 dark:border-gray-700 mt-8 space-y-3">
+        {/* Profile Section in Sidebar - Enhanced */}
+        <div className="p-6 border-t border-gray-200 dark:border-gray-700 mt-8 space-y-4 bg-gradient-to-br from-indigo-50 to-blue-50 dark:from-indigo-900/20 dark:to-blue-900/20 rounded-xl mx-2 mb-2">
           <div className="mb-4">
-            <p className="text-xs text-gray-600 dark:text-gray-400 uppercase font-semibold">Logged in as</p>
-            <p className="font-semibold text-gray-900 dark:text-white mt-1 truncate">{user?.name}</p>
-            <p className="text-xs text-gray-600 dark:text-gray-400 truncate">{user?.email}</p>
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-10 h-10 bg-gradient-to-br from-indigo-600 to-blue-600 rounded-full flex items-center justify-center text-white font-bold text-lg">
+                {user?.name?.charAt(0)?.toUpperCase() || 'C'}
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-xs text-gray-600 dark:text-gray-400 uppercase font-semibold tracking-wide">Logged in as</p>
+                <p className="font-semibold text-gray-900 dark:text-white truncate text-sm">{user?.name}</p>
+              </div>
+            </div>
+            <p className="text-xs text-gray-600 dark:text-gray-400 truncate ml-0">{user?.email}</p>
           </div>
           <button
             onClick={() => setEditing(!editing)}
-            className="w-full px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium transition"
+            className="w-full px-4 py-2.5 bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-700 hover:to-indigo-800 text-white rounded-lg text-sm font-medium transition transform hover:scale-105 flex items-center justify-center gap-2"
           >
+            <User className="w-4 h-4" />
             Edit Profile
           </button>
           <button
             onClick={handleLogout}
-            className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm font-medium transition"
+            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white rounded-lg text-sm font-medium transition transform hover:scale-105"
           >
             <LogOut className="w-4 h-4" />
             Logout
@@ -687,6 +689,33 @@ const CounselorDashboard = () => {
                   ))
                 ) : (
                   <p className="text-center text-gray-600 dark:text-gray-400 py-8">No appointments yet</p>
+                )}
+              </div>
+            </div>
+
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow">
+              <div className="p-6 border-b border-gray-200 dark:border-gray-700">
+                <h2 className="text-xl font-bold text-gray-900 dark:text-white">Students</h2>
+                <p className="text-sm text-gray-500 mt-1">{students.length} student(s)</p>
+              </div>
+              <div className="divide-y">
+                {students.length > 0 ? (
+                  students.map(student => (
+                    <div key={student.id} className="p-6 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <p className="font-semibold text-gray-900 dark:text-white">{student.name}</p>
+                          <p className="text-sm text-gray-600 dark:text-gray-400">{student.email}</p>
+                          <p className="text-xs text-gray-500 mt-2">Sessions: {student.sessions}</p>
+                        </div>
+                        <span className="px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300">
+                          {student.status}
+                        </span>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-center text-gray-600 dark:text-gray-400 py-8">No students available</p>
                 )}
               </div>
             </div>
