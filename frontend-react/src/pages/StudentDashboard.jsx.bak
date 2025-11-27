@@ -1,0 +1,652 @@
+import React, { useEffect, useState } from 'react';
+import api from '../api/axios';
+import { 
+  LogOut, Menu, X, Home, Calendar, FileText, MessageSquare, 
+  User, Settings, Bell, Search, ChevronDown, Award, Clock, 
+  CheckCircle, AlertCircle, Edit2, Save, Clipboard, Flag, Plus, Moon, Sun
+} from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { RequestsTab } from '../components/RequestsTab';
+import { ChatWithCounselor } from '../components/ChatWithCounselor';
+import StudentReportForm from '../components/StudentReportForm';
+import { BookAppointmentModal } from '../components/BookAppointmentModal';
+import ProfileSettings from '../components/ProfileSettings';
+import { useTheme } from '../context/ThemeContext';
+
+// Error Boundary wrapper
+class ErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+
+  static getDerivedStateFromError(error) {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error, errorInfo) {
+    console.error('StudentDashboard Error:', error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="flex items-center justify-center min-h-screen bg-gray-50 dark:bg-gray-900">
+          <div className="text-center max-w-md">
+            <AlertCircle className="w-16 h-16 text-yellow-500 mx-auto mb-4" />
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Oops!</h1>
+            <p className="text-gray-600 dark:text-gray-400 mb-4">Something went wrong loading the dashboard</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400">{this.state.error?.message}</p>
+            <button 
+              onClick={() => window.location.reload()} 
+              className="mt-4 px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
+            >
+              Reload Page
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    return this.props.children;
+  }
+}
+
+const StudentDashboard = () => {
+  const navigate = useNavigate();
+  const { isDark, toggleTheme } = useTheme();
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [forbidden, setForbidden] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [activeTab, setActiveTab] = useState('overview');
+  const [editing, setEditing] = useState(false);
+  const [formData, setFormData] = useState({ name: '', email: '', address: '' });
+  const [saving, setSaving] = useState(false);
+  const [errors, setErrors] = useState({});
+  const [message, setMessage] = useState('');
+  const [messageType, setMessageType] = useState('success');
+  const [stats, setStats] = useState({ upcoming_sessions: 0, completed_sessions: 0, total_sessions: 0, messages: 0, resources: 0 });
+  const [recentActivities, setRecentActivities] = useState([]);
+  const [upcomingAppointments, setUpcomingAppointments] = useState([]);
+  const [notifications, setNotifications] = useState([]);
+  const [notificationsLoading, setNotificationsLoading] = useState(false);
+  const [showReportForm, setShowReportForm] = useState(false);
+  const [showBookingModal, setShowBookingModal] = useState(false);
+  const [appointments, setAppointments] = useState([]);
+  const [appointmentsLoading, setAppointmentsLoading] = useState(false);
+
+  useEffect(() => {
+    let mounted = true;
+    const fetchDashboardData = async () => {
+      try {
+        const res = await api.get('/api/v1/student/dashboard');
+        if (!mounted) return;
+        
+        const u = res.data.data?.user ?? res.data.user ?? res.data;
+        const dashboardData = res.data.data || res.data;
+        
+        setUser(u);
+        setFormData({ name: u.name ?? '', email: u.email ?? '', address: u.address ?? '' });
+        
+        if (dashboardData.stats) {
+          setStats(dashboardData.stats);
+        }
+        if (dashboardData.recent_activities) {
+          setRecentActivities(dashboardData.recent_activities);
+        }
+        if (dashboardData.upcoming_appointments) {
+          setUpcomingAppointments(dashboardData.upcoming_appointments);
+        }
+      } catch (err) {
+        if (!mounted) return;
+        if (err.response && err.response.status === 403) {
+          setUser(null);
+          setForbidden(true);
+        } else {
+          console.error('Error fetching dashboard:', err);
+        }
+      } finally {
+        mounted && setLoading(false);
+      }
+    };
+
+    fetchDashboardData();
+    return () => (mounted = false);
+  }, []);
+
+  // Fetch appointments
+  useEffect(() => {
+    let mounted = true;
+    const fetchAppointments = async () => {
+      setAppointmentsLoading(true);
+      try {
+        const res = await api.get('/api/v1/student/appointments');
+        if (mounted && res.data?.data) {
+          setAppointments(res.data.data);
+        }
+      } catch (err) {
+        console.error('Error fetching appointments:', err);
+      } finally {
+        mounted && setAppointmentsLoading(false);
+      }
+    };
+
+    fetchAppointments();
+    return () => (mounted = false);
+  }, []);
+
+  const handleLogout = async () => {
+    try {
+      await api.post('/api/v1/logout');
+      localStorage.removeItem('authToken');
+      navigate('/login');
+    } catch (err) {
+      console.error('Logout failed:', err);
+      localStorage.removeItem('authToken');
+      navigate('/login');
+    }
+  };
+
+  const handleSaveProfile = async (e) => {
+    e.preventDefault();
+    setSaving(true);
+    setErrors({});
+    setMessage('');
+    try {
+      const res = await api.put('/api/v1/user/profile', formData);
+      const updatedUser = res.data.user ?? res.data.data?.user;
+      setUser(updatedUser);
+      setFormData({ name: updatedUser.name ?? '', email: updatedUser.email ?? '', address: updatedUser.address ?? '' });
+      setMessageType('success');
+      setMessage('Profile updated successfully.');
+      setEditing(false);
+      setTimeout(() => setMessage(''), 3000);
+    } catch (err) {
+      if (err.response && err.response.status === 422) {
+        setErrors(err.response.data.errors || {});
+      } else {
+        setMessageType('error');
+        setMessage('Failed to save profile.');
+      }
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-gray-50 dark:bg-gray-900">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto mb-4"></div>
+          <p className="text-gray-600 dark:text-gray-400">Loading your dashboard...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (forbidden || !user) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-gray-50 dark:bg-gray-900">
+        <div className="text-center">
+          <AlertCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">{forbidden ? 'Access Denied' : 'No User Data'}</h1>
+          <p className="text-gray-600 dark:text-gray-400">{forbidden ? 'You do not have permission to access the student dashboard.' : 'Unable to load user information. Please try logging in again.'}</p>
+          <button 
+            onClick={() => navigate('/login')} 
+            className="mt-4 px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
+          >
+            Go to Login
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  const sidebarItems = [
+    { id: 'overview', label: 'Overview', icon: Home },
+    { id: 'appointments', label: 'Appointments', icon: Calendar },
+    { id: 'requests', label: 'Requests', icon: Clipboard },
+    { id: 'resources', label: 'Resources', icon: FileText },
+    { id: 'messages', label: 'Messages', icon: MessageSquare },
+    { id: 'profile', label: 'Profile', icon: User },
+  ];
+
+  // Ensure theme is applied when isDark changes
+  useEffect(() => {
+    const html = document.documentElement;
+    if (isDark) {
+      html.classList.add('dark');
+    } else {
+      html.classList.remove('dark');
+    }
+  }, [isDark]);
+
+  return (
+    <div className="flex h-screen bg-gray-100 dark:bg-gray-900">
+      {/* Sidebar */}
+      <div
+        className={`${
+          sidebarOpen ? 'w-64' : 'w-20'
+        } bg-white dark:bg-gray-800 shadow-lg transition-all duration-300 fixed h-full z-40 flex flex-col`}
+      >
+        {/* Logo */}
+        <div className="flex items-center justify-between h-20 px-6 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
+          {sidebarOpen && (
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center">
+                <span className="text-white font-bold text-sm">G</span>
+              </div>
+              <span className="font-bold text-lg text-gray-900 dark:text-white">Guidance</span>
+            </div>
+          )}
+          <button
+            onClick={() => setSidebarOpen(!sidebarOpen)}
+            className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg"
+          >
+            {sidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+          </button>
+        </div>
+
+        {/* Navigation - Scrollable */}
+        <nav className="mt-8 px-4 space-y-2 flex-1 overflow-y-auto">
+          {sidebarItems.map(item => {
+            const Icon = item.icon;
+            return (
+              <button
+                key={item.id}
+                onClick={() => setActiveTab(item.id)}
+                className={`w-full flex items-center gap-4 px-4 py-3 rounded-lg transition ${
+                  activeTab === item.id
+                    ? 'bg-indigo-600 text-white'
+                    : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+                }`}
+              >
+                <Icon className="w-5 h-5 flex-shrink-0" />
+                {sidebarOpen && <span className="font-medium">{item.label}</span>}
+              </button>
+            );
+          })}
+        </nav>
+
+        {/* Logout - Sticky at bottom */}
+        <div className="p-4 border-t border-gray-200 dark:border-gray-700 flex-shrink-0">
+          <button
+            onClick={handleLogout}
+            className="w-full flex items-center justify-center gap-3 px-4 py-3 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition font-medium"
+          >
+            <LogOut className="w-5 h-5 flex-shrink-0" />
+            {sidebarOpen && <span>Logout</span>}
+          </button>
+        </div>
+      </div>
+
+      {/* Main Content */}
+      <div className={`${sidebarOpen ? 'ml-64' : 'ml-20'} flex-1 flex flex-col overflow-hidden transition-all duration-300`}>
+        {/* Top Bar */}
+        <div className="h-20 bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700 flex items-center justify-between px-8">
+          <div className="flex-1 max-w-md">
+            <div className="relative">
+              <Search className="absolute left-3 top-3 w-5 h-5 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Search..."
+                className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600 dark:bg-gray-700 dark:text-white"
+              />
+            </div>
+          </div>
+
+          <div className="flex items-center gap-6 ml-8">
+            {/* Theme Toggle Button */}
+            <button
+              onClick={toggleTheme}
+              className="flex items-center gap-2 px-3 py-2 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-900 dark:text-white rounded-lg transition"
+              title={`Switch to ${isDark ? 'light' : 'dark'} mode`}
+            >
+              {isDark ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+            </button>
+
+            {/* Send Report Button */}
+            <button
+              onClick={() => setShowReportForm(true)}
+              className="flex items-center gap-2 px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition"
+              title="Send Report or Feedback"
+            >
+              <Flag className="w-5 h-5" />
+              <span className="hidden sm:inline text-sm font-medium">Send Report</span>
+            </button>
+
+            {/* Notifications */}
+            <div className="relative group">
+              <button className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg relative">
+                <Bell className="w-6 h-6 text-gray-600 dark:text-gray-400" />
+                <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
+              </button>
+              
+              {/* Notification Dropdown */}
+              <div className="absolute right-0 mt-2 w-80 bg-white dark:bg-gray-800 rounded-lg shadow-lg opacity-0 group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto transition-opacity z-50">
+                <div className="p-4 border-b border-gray-200 dark:border-gray-700">
+                  <h3 className="font-semibold text-gray-900 dark:text-white">Notifications</h3>
+                </div>
+                <div className="max-h-96 overflow-y-auto">
+                  {notifications.map(notif => (
+                    <div key={notif.id} className="p-4 border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50">
+                      <p className="font-medium text-gray-900 dark:text-white text-sm">{notif.title}</p>
+                      <p className="text-gray-600 dark:text-gray-400 text-xs mt-1">{notif.description}</p>
+                      <p className="text-gray-500 text-xs mt-2">{notif.time}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* User Menu */}
+            <div className="flex items-center gap-3 pl-6 border-l border-gray-200 dark:border-gray-700">
+              <div className="w-10 h-10 bg-indigo-100 dark:bg-indigo-900/30 rounded-full flex items-center justify-center">
+                <span className="text-indigo-600 dark:text-indigo-400 font-semibold">
+                  {user?.name?.charAt(0)?.toUpperCase() || 'S'}
+                </span>
+              </div>
+              <div className="hidden sm:block">
+                <p className="text-sm font-medium text-gray-900 dark:text-white">{user?.name}</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">Student</p>
+              </div>
+              <ChevronDown className="w-4 h-4 text-gray-400" />
+            </div>
+          </div>
+        </div>
+
+        {/* Page Content */}
+        <div className="flex-1 overflow-auto bg-gray-100 dark:bg-gray-900 transition-colors">
+          {activeTab === 'messages' ? (
+            <div className="h-full">
+              <ChatWithCounselor />
+            </div>
+          ) : (
+            <div className="p-8 bg-gray-100 dark:bg-gray-900">
+            {/* Overview Tab */}
+            {activeTab === 'overview' && (
+              <div>
+                <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
+                  Welcome back, {user?.name?.split(' ')[0]}! 👋
+                </h1>
+                <p className="text-gray-600 dark:text-gray-400 mb-8">Here's your dashboard overview</p>
+
+                {/* Stats Grid */}
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+                  <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-gray-600 dark:text-gray-400 text-sm">Upcoming Sessions</p>
+                        <p className="text-3xl font-bold text-gray-900 dark:text-white mt-2">{stats.upcoming_sessions}</p>
+                      </div>
+                      <Calendar className="w-10 h-10 text-blue-500 opacity-20" />
+                    </div>
+                  </div>
+
+                  <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-gray-600 dark:text-gray-400 text-sm">Completed Sessions</p>
+                        <p className="text-3xl font-bold text-gray-900 dark:text-white mt-2">{stats.completed_sessions}</p>
+                      </div>
+                      <CheckCircle className="w-10 h-10 text-green-500 opacity-20" />
+                    </div>
+                  </div>
+
+                  <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-gray-600 dark:text-gray-400 text-sm">Total Sessions</p>
+                        <p className="text-3xl font-bold text-gray-900 dark:text-white mt-2">{stats.total_sessions}</p>
+                      </div>
+                      <MessageSquare className="w-10 h-10 text-purple-500 opacity-20" />
+                    </div>
+                  </div>
+
+                  <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-gray-600 dark:text-gray-400 text-sm">Resources</p>
+                        <p className="text-3xl font-bold text-gray-900 dark:text-white mt-2">{stats.resources}</p>
+                      </div>
+                      <FileText className="w-10 h-10 text-orange-500 opacity-20" />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Recent Activities */}
+                <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+                  <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Recent Activities</h2>
+                  {recentActivities.length > 0 ? (
+                    <div className="space-y-4">
+                      {recentActivities.map((activity, index) => (
+                        <div key={activity.id || index} className="flex items-center gap-4 p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                          <div className="w-10 h-10 bg-indigo-100 dark:bg-indigo-900/30 rounded-full flex items-center justify-center flex-shrink-0">
+                            <Clock className="w-5 h-5 text-indigo-600" />
+                          </div>
+                          <div className="flex-1">
+                            <p className="text-gray-900 dark:text-white font-medium">Session with {activity.counselor_name}</p>
+                            <p className="text-sm text-gray-600 dark:text-gray-400">{activity.topic}</p>
+                          </div>
+                          <span className="text-xs px-2 py-1 bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 rounded-full capitalize">
+                            {activity.status}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-gray-600 dark:text-gray-400 text-center py-8">No recent activities yet.</p>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Requests Tab */}
+            {activeTab === 'requests' && (
+              <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-8">
+                <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">Requests</h1>
+                <p className="text-gray-600 dark:text-gray-400">Your document requests will appear here</p>
+              </div>
+            )}
+
+            {/* Profile Tab */}
+            {activeTab === 'profile' && (
+              <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-8">
+                <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-6">Profile Settings</h1>
+                <div className="max-w-2xl">
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Full Name</label>
+                      <input 
+                        type="text" 
+                        value={user?.name || ''} 
+                        readOnly 
+                        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Email</label>
+                      <input 
+                        type="email" 
+                        value={user?.email || ''} 
+                        readOnly 
+                        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Address</label>
+                      <input 
+                        type="text" 
+                        value={user?.address || ''} 
+                        readOnly 
+                        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Messages/Chat Tab */}
+            {activeTab === 'messages' && (
+              <div className="h-full flex flex-col">
+                <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
+                  <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Messages</h2>
+                  <button
+                    onClick={() => setShowBookingModal(true)}
+                    className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition font-medium"
+                  >
+                    <Plus className="w-5 h-5" />
+                    Book Appointment
+                  </button>
+                </div>
+                <div className="flex-1 overflow-auto p-6">
+                  <div className="text-center text-gray-600 dark:text-gray-400">
+                    <MessageSquare className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                    <p className="text-lg font-medium">Messages will appear here</p>
+                    <p className="text-sm mt-2">Start a conversation with your counselor</p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Appointments Tab */}
+            {activeTab === 'appointments' && (
+              <div>
+                <div className="flex items-center justify-between mb-6">
+                  <h1 className="text-3xl font-bold text-gray-900 dark:text-white">My Appointments</h1>
+                  <button
+                    onClick={() => setShowBookingModal(true)}
+                    className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition font-medium"
+                  >
+                    <Plus className="w-5 h-5" />
+                    New Appointment
+                  </button>
+                </div>
+
+                {appointmentsLoading ? (
+                  <div className="flex items-center justify-center min-h-96">
+                    <div className="text-center">
+                      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto mb-4"></div>
+                      <p className="text-gray-600 dark:text-gray-400">Loading appointments...</p>
+                    </div>
+                  </div>
+                ) : appointments.length > 0 ? (
+                  <div className="space-y-4">
+                    {appointments.map((appointment) => {
+                      const appointmentDate = appointment.requested_date ? new Date(appointment.requested_date) : null;
+                      const isUpcoming = appointmentDate && appointmentDate > new Date();
+                      return (
+                        <div
+                          key={appointment.id}
+                          className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 border-l-4 border-indigo-600"
+                        >
+                          <div className="flex items-start justify-between mb-4">
+                            <div>
+                              <h3 className="text-lg font-bold text-gray-900 dark:text-white">
+                                {appointment.counselor?.name || 'Counselor'}
+                              </h3>
+                              <p className="text-sm text-gray-600 dark:text-gray-400">{appointment.topic}</p>
+                            </div>
+                            <span className={`px-3 py-1 rounded-full text-xs font-medium ${
+                              appointment.status === 'pending'
+                                ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-200'
+                                : appointment.status === 'approved'
+                                ? 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-200'
+                                : 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200'
+                            }`}>
+                              {appointment.status}
+                            </span>
+                          </div>
+                          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                            <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
+                              <Calendar className="w-4 h-4" />
+                              <span className="text-sm">{appointmentDate ? appointmentDate.toLocaleDateString() : 'No date'}</span>
+                            </div>
+                            <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
+                              <Clock className="w-4 h-4" />
+                              <span className="text-sm">{appointment.requested_time || 'No time'}</span>
+                            </div>
+                            <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
+                              <CheckCircle className="w-4 h-4" />
+                              <span className="text-sm capitalize">{isUpcoming ? 'Upcoming' : 'Completed'}</span>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-12 text-center">
+                    <Calendar className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                    <p className="text-gray-600 dark:text-gray-400 mb-4">No appointments booked yet</p>
+                    <button
+                      onClick={() => setShowBookingModal(true)}
+                      className="px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition font-medium"
+                    >
+                      Book Your First Appointment
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Resources Tab - Placeholder */}
+            {activeTab === 'resources' && (
+              <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-8">
+                <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-4 capitalize">
+                  Resources
+                </h1>
+                <p className="text-gray-600 dark:text-gray-400">
+                  The resources section is coming soon. Stay tuned!
+                </p>
+              </div>
+            )}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Report Form Modal */}
+      {showReportForm && (
+        <StudentReportForm 
+          onClose={() => setShowReportForm(false)}
+          onReportSent={() => setShowReportForm(false)}
+        />
+      )}
+
+      {/* Book Appointment Modal */}
+      <BookAppointmentModal
+        isOpen={showBookingModal}
+        onClose={() => setShowBookingModal(false)}
+        onBookingSuccess={() => {
+          // Refresh appointments list
+          setAppointments([]);
+          const timer = setTimeout(() => {
+            const fetchAppointments = async () => {
+              try {
+                const res = await api.get('/api/v1/student/appointments');
+                if (res.data?.data) {
+                  setAppointments(res.data.data);
+                }
+              } catch (err) {
+                console.error('Error refreshing appointments:', err);
+              }
+            };
+            fetchAppointments();
+          }, 500);
+          return () => clearTimeout(timer);
+        }}
+      />
+    </div>
+  );
+};
+
+export default function StudentDashboardWithErrorBoundary() {
+  return (
+    <ErrorBoundary>
+      <StudentDashboard />
+    </ErrorBoundary>
+  );
+}
