@@ -129,7 +129,7 @@ export default function LoginForm() {
           </div>
 
           {/* Form */}
-          <form onSubmit={handleLogin} className="px-6 py-8">
+          <form onSubmit={handleLogin} className="px-6 py-8" autoComplete="off">
             {/* Error Alert */}
             {error && (
               <div className="mb-4 p-4 bg-red-50 dark:bg-red-900/30 border-2 border-red-200 dark:border-red-800 rounded-lg animate-slide-up">
@@ -148,6 +148,7 @@ export default function LoginForm() {
                   name="email"
                   type="email"
                   placeholder="you@example.com"
+                  autoComplete="username"
                   value={formData.email}
                   onChange={handleChange}
                   className="w-full pl-10 pr-4 py-3 border-2 border-green-200 dark:border-green-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 dark:focus:ring-green-400 dark:bg-gray-700 dark:text-white transition-all duration-300 hover:border-green-300 group-hover:shadow-md"
@@ -166,6 +167,7 @@ export default function LoginForm() {
                 <input
                   name="password"
                   type={showPassword ? "text" : "password"}
+                  autoComplete="current-password"
                   placeholder="••••••••"
                   value={formData.password}
                   onChange={handleChange}

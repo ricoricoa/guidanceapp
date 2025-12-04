@@ -144,7 +144,7 @@ export default function Register() {
           </div>
 
           {/* Form */}
-          <form onSubmit={handleSubmit} className="px-6 py-8">
+          <form onSubmit={handleSubmit} className="px-6 py-8" autoComplete="off">
             {/* General Error */}
             {errors.general && (
               <div className="mb-4 p-4 bg-red-50 dark:bg-red-900/30 border-2 border-red-200 dark:border-red-800 rounded-lg flex items-start gap-2 animate-slide-up">
@@ -188,6 +188,7 @@ export default function Register() {
                   type="email"
                   name="email"
                   placeholder="you@example.com"
+                  autoComplete="email"
                   value={formData.email}
                   onChange={handleChange}
                   className={`w-full pl-10 pr-4 py-3 border-2 rounded-lg focus:outline-none focus:ring-2 dark:bg-gray-700 dark:text-white transition-all duration-300 ${
@@ -210,6 +211,7 @@ export default function Register() {
                 <Lock className="absolute left-3 top-3.5 text-green-500 w-5 h-5" />
                 <input
                   type={showPassword ? "text" : "password"}
+                  autoComplete="new-password"
                   name="password"
                   placeholder="••••••••"
                   value={formData.password}
@@ -256,6 +258,7 @@ export default function Register() {
                 <Lock className="absolute left-3 top-3.5 text-green-500 w-5 h-5" />
                 <input
                   type={showConfirmPassword ? "text" : "password"}
+                  autoComplete="new-password"
                   name="password_confirmation"
                   placeholder="••••••••"
                   value={formData.password_confirmation}
