@@ -119,4 +119,22 @@ class User extends Authenticatable
     {
         return $this->hasMany(CounselorReview::class, 'counselor_id', 'id');
     }
+
+    // Relationship for announcements created by this counselor
+    public function announcements()
+    {
+        return $this->hasMany(Announcement::class, 'counselor_id', 'id');
+    }
+
+    // Relationship for comments made by this user
+    public function announcementComments()
+    {
+        return $this->hasMany(AnnouncementComment::class);
+    }
+
+    // Relationship for reactions made by this user
+    public function announcementReactions()
+    {
+        return $this->hasMany(AnnouncementReaction::class);
+    }
 }

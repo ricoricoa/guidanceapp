@@ -100,7 +100,7 @@ const LandingPage = () => {
             <div className="flex items-center gap-3">
               <div className="text-3xl">🌿</div>
               <div>
-                <h1 className="text-white font-bold text-lg leading-tight">MSU Bongabong</h1>
+                <h1 className="text-white font-bold text-lg leading-tight">MinSU Bongabong</h1>
                 <p className="text-green-100 text-xs">Guidance Office</p>
               </div>
             </div>
@@ -195,7 +195,7 @@ const LandingPage = () => {
           </h3>
 
           <p className="text-gray-700 dark:text-gray-300 text-lg mb-6 leading-relaxed">
-            Welcome to MSU Bongabong's premier Guidance and Counseling Office. We are dedicated to supporting your academic, personal, and professional growth journey. Our compassionate team of counselors and advisors is here to help you navigate challenges and achieve your full potential.
+            Welcome to MinSU Bongabong's premier Guidance and Counseling Office. We are dedicated to supporting your academic, personal, and professional growth journey. Our compassionate team of counselors and advisors is here to help you navigate challenges and achieve your full potential.
           </p>
 
           <div className="bg-green-50 dark:bg-green-900/30 border-2 border-green-200 dark:border-green-700 p-4 rounded-2xl mb-6">
@@ -234,9 +234,11 @@ const LandingPage = () => {
           <div className="relative group">
             <div className="absolute -inset-1 bg-gradient-to-r from-green-400 to-emerald-400 rounded-3xl blur opacity-25 group-hover:opacity-75 transition duration-500"></div>
             <img
-              src="https://images.pexels.com/photos/256381/pexels-photo-256381.jpeg?auto=compress&cs=tinysrgb&h=627&w=1200"
-              alt="MSU Bongabong Campus"
+              src="/minsu.png.webp"
+              alt="Mindoro State University"
               className="relative rounded-3xl shadow-2xl w-full object-cover h-80 md:h-96"
+              loading="eager"
+              decoding="async"
             />
           </div>
         </div>
@@ -290,7 +292,7 @@ const LandingPage = () => {
               </div>
               <div>
                 <p className="text-green-700 dark:text-green-400 font-semibold mb-2">📧 Email</p>
-                <p className="text-gray-700 dark:text-gray-300">guidance@msu-bongabong.edu.ph</p>
+                <p className="text-gray-700 dark:text-gray-300">guidance@minsu-bongabong.edu.ph</p>
               </div>
               <div>
                 <p className="text-green-700 dark:text-green-400 font-semibold mb-2">📱 Phone</p>
@@ -325,7 +327,7 @@ const LandingPage = () => {
             <div className="bg-white dark:bg-gray-800 p-8 rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:scale-105 border-2 border-emerald-200 dark:border-emerald-700">
               <div className="text-5xl mb-4">📧</div>
               <h4 className="text-xl font-bold text-emerald-800 dark:text-emerald-300 mb-3">Email</h4>
-              <p className="text-gray-700 dark:text-gray-300 break-all font-semibold">guidance@msu-bongabong.edu.ph</p>
+              <p className="text-gray-700 dark:text-gray-300 break-all font-semibold">guidance@minsu-bongabong.edu.ph</p>
               <p className="text-gray-500 dark:text-gray-400 text-sm mt-3">We respond within 24 hours</p>
             </div>
 
@@ -375,7 +377,7 @@ const LandingPage = () => {
           <p className="text-gray-700 dark:text-gray-200">Need immediate assistance? Our Guidance Office team is here to help you right away!</p>
           <div className="bg-green-50 dark:bg-green-900/30 p-4 rounded-lg border-l-4 border-green-500">
             <p className="text-sm font-semibold text-green-800 dark:text-green-300 mb-2">📧 Email</p>
-            <p className="text-sm text-gray-700 dark:text-gray-300">guidance@msu-bongabong.edu.ph</p>
+            <p className="text-sm text-gray-700 dark:text-gray-300">guidance@minsu-bongabong.edu.ph</p>
           </div>
           <div className="bg-emerald-50 dark:bg-emerald-900/30 p-4 rounded-lg border-l-4 border-emerald-500">
             <p className="text-sm font-semibold text-emerald-800 dark:text-emerald-300 mb-2">📱 Phone</p>
@@ -390,7 +392,7 @@ const LandingPage = () => {
 
       <SidePanel open={panelOpen} onClose={() => setPanelOpen(false)} title="ℹ️ About Our Services">
         <div className="space-y-4">
-          <p className="text-gray-700 dark:text-gray-300">At MSU Bongabong Guidance Office, we provide comprehensive support to help students thrive academically and personally.</p>
+          <p className="text-gray-700 dark:text-gray-300">At MinSU Bongabong Guidance Office, we provide comprehensive support to help students thrive academically and personally.</p>
           
           <div className="space-y-3">
             <div className="bg-green-50 dark:bg-green-900/30 p-3 rounded-lg">
@@ -424,7 +426,7 @@ const LandingPage = () => {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
             <div>
               <h5 className="text-white font-bold text-lg mb-4 flex items-center gap-2">
-                <span className="text-2xl">🌿</span> MSU Bongabong
+                <span className="text-2xl">🌿</span> MinSU Bongabong
               </h5>
               <p className="text-gray-400 text-sm leading-relaxed">
                 Supporting students' academic, personal, and professional growth through comprehensive guidance and counseling services.
@@ -443,7 +445,7 @@ const LandingPage = () => {
             <div>
               <h5 className="text-white font-bold text-lg mb-4">Contact</h5>
               <p className="text-gray-400 text-sm mb-2">
-                <span className="text-green-400">📧</span> guidance@msu-bongabong.edu.ph
+                <span className="text-green-400">📧</span> guidance@minsu-bongabong.edu.ph
               </p>
               <p className="text-gray-400 text-sm">
                 <span className="text-green-400">📱</span> (042) 123-4567

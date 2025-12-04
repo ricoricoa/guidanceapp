@@ -9,6 +9,10 @@ use App\Http\Controllers\Api\V1\CertificateController;
 use App\Http\Controllers\Api\V1\AdminController;
 use App\Http\Controllers\Api\V1\MessageController;
 use App\Http\Controllers\Api\V1\ReviewController;
+use App\Http\Controllers\Api\V1\AnnouncementController;
+use App\Http\Controllers\Api\V1\AnnouncementCommentController;
+use App\Http\Controllers\Api\V1\AnnouncementReactionController;
+use App\Http\Controllers\Api\V1\ReportController;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\Route;
@@ -167,6 +171,47 @@ Route::middleware('auth:sanctum')->group(function () {
 	Route::post('/messages', [MessageController::class, 'sendMessage']);
 	Route::get('/messages', [MessageController::class, 'getUserMessages']);
 	Route::put('/messages/{id}/read', [MessageController::class, 'markAsRead']);
+});
+
+// Announcement routes - Students view, Counselors create/manage
+// Note: Role checks are performed in the controller methods for flexibility
+Route::middleware('auth:sanctum')->group(function () {
+	Route::get('/announcements', [AnnouncementController::class, 'getForStudent']);
+	Route::post('/announcements', [AnnouncementController::class, 'create']);
+	Route::get('/announcements/counselor/all', [AnnouncementController::class, 'getCounselorAnnouncements']);
+	Route::put('/announcements/{id}', [AnnouncementController::class, 'update']);
+	Route::delete('/announcements/{id}', [AnnouncementController::class, 'delete']);
+});
+
+// Show single announcement - must be after specific routes
+Route::middleware('auth:sanctum')->group(function () {
+	Route::get('/announcements/{id}', [AnnouncementController::class, 'show']);
+});
+
+// Announcement comments routes - both students and counselors can comment
+Route::middleware('auth:sanctum')->group(function () {
+	Route::get('/announcements/{id}/comments', [AnnouncementCommentController::class, 'getComments']);
+	Route::post('/announcements/{id}/comments', [AnnouncementCommentController::class, 'addComment']);
+	Route::put('/comments/{id}', [AnnouncementCommentController::class, 'updateComment']);
+	Route::delete('/comments/{id}', [AnnouncementCommentController::class, 'deleteComment']);
+});
+
+// Announcement reactions routes - both students and counselors can react
+Route::middleware('auth:sanctum')->group(function () {
+	Route::get('/announcements/{id}/reactions', [AnnouncementReactionController::class, 'getReactions']);
+	Route::post('/announcements/{id}/reactions', [AnnouncementReactionController::class, 'toggleReaction']);
+});
+
+// Report routes - Students can submit, Admin can view
+// Student report submission endpoint
+Route::middleware(['auth:sanctum', 'role:student'])->group(function () {
+	Route::post('/reports', [ReportController::class, 'store']);
+});
+
+// Admin report viewing and management endpoints
+Route::middleware(['auth:sanctum', 'role:admin'])->group(function () {
+	Route::get('/reports', [ReportController::class, 'index']);
+	Route::put('/reports/{id}/status', [ReportController::class, 'updateStatus']);
 });
 
 //Public Routes

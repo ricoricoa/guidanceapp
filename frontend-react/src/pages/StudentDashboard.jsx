@@ -2,7 +2,7 @@ import React, { useEffect, useState, Suspense, lazy } from 'react';
 import api from '../api/axios';
 import { 
   LogOut, Menu, X, Home, Calendar, FileText, MessageSquare, 
-  User, Bell, Search, Clock, CheckCircle, AlertCircle, Flag, Moon, Sun, Plus, Award, Star, Lightbulb
+  User, Bell, Search, Clock, CheckCircle, AlertCircle, Flag, Moon, Sun, Plus, Award, Star, Lightbulb, Megaphone
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useTheme } from '../context/ThemeContext';
@@ -10,6 +10,8 @@ import StudentReportForm from '../components/StudentReportForm';
 import { BookAppointmentModal } from '../components/BookAppointmentModal';
 import CounselorReviewsForm from '../components/CounselorReviewsForm';
 import TipsBot from '../components/TipsBot';
+import StudentAnnouncementsTab from '../components/StudentAnnouncementsTab';
+import DashboardNavbar from '../components/DashboardNavbar';
 
 // Lazy load ChatWithCounselor to avoid hook conflicts
 const ChatWithCounselor = lazy(() => import('../components/ChatWithCounselor').then(m => ({ default: m.ChatWithCounselor })));
@@ -58,6 +60,8 @@ const StudentDashboard = () => {
   const [profilePicturePreview, setProfilePicturePreview] = useState(null);
   const [saving, setSaving] = useState(false);
   const [showTipsBot, setShowTipsBot] = useState(false);
+  const [notificationDropdownOpen, setNotificationDropdownOpen] = useState(false);
+  const [notifications, setNotifications] = useState([]);
 
   // Fetch dashboard data
   useEffect(() => {
@@ -137,12 +141,10 @@ const StudentDashboard = () => {
       }
     };
 
+    // Only fetch when refreshAppointments changes, not continuously
     fetchAppointments();
-    // Auto-refresh every 5 seconds to check for counselor responses
-    const interval = setInterval(fetchAppointments, 5000);
     return () => {
       mounted = false;
-      clearInterval(interval);
     };
   }, [refreshAppointments]);
 
@@ -173,14 +175,71 @@ const StudentDashboard = () => {
       }
     };
 
+    // Only fetch when refreshCertificates changes, not continuously
     fetchCertificateRequests();
-    // Auto-refresh every 5 seconds to check for counselor response
-    const interval = setInterval(fetchCertificateRequests, 5000);
     return () => {
       mounted = false;
-      clearInterval(interval);
     };
   }, [refreshCertificates]);
+
+  // Generate notifications based on student data
+  useEffect(() => {
+    const generatedNotifications = [];
+
+    // Notification for pending appointments
+    if (upcomingAppointments.filter(a => a.status === 'pending').length > 0) {
+      generatedNotifications.push({
+        id: 1,
+        type: 'appointment',
+        title: 'Pending Appointments',
+        message: `You have ${upcomingAppointments.filter(a => a.status === 'pending').length} pending appointment(s) awaiting counselor approval`,
+        icon: '📅',
+        time: 'Just now',
+        read: false
+      });
+    }
+
+    // Notification for approved appointments
+    if (upcomingAppointments.filter(a => a.status === 'approved').length > 0) {
+      generatedNotifications.push({
+        id: 2,
+        type: 'appointment',
+        title: 'Approved Appointments',
+        message: `You have ${upcomingAppointments.filter(a => a.status === 'approved').length} approved appointment(s)`,
+        icon: '✅',
+        time: 'Recent',
+        read: false
+      });
+    }
+
+    // Notification for pending certificate requests
+    if (certificateRequests.filter(r => r.status === 'pending').length > 0) {
+      generatedNotifications.push({
+        id: 3,
+        type: 'certificate',
+        title: 'Pending Certificates',
+        message: `You have ${certificateRequests.filter(r => r.status === 'pending').length} certificate request(s) waiting for approval`,
+        icon: '📄',
+        time: 'Today',
+        read: false
+      });
+    }
+
+    // Notification for approved certificates
+    if (certificateRequests.filter(r => r.status === 'approved').length > 0) {
+      generatedNotifications.push({
+        id: 4,
+        type: 'certificate',
+        title: 'Certificates Ready',
+        message: `${certificateRequests.filter(r => r.status === 'approved').length} certificate(s) approved! Ready for pickup`,
+        icon: '🎉',
+        time: 'Recent',
+        read: false
+      });
+    }
+
+    setNotifications(generatedNotifications);
+  }, [upcomingAppointments, certificateRequests]);
 
   // Apply theme
   useEffect(() => {
@@ -335,6 +394,8 @@ const StudentDashboard = () => {
         alert(`${certificateType} Certificate request submitted successfully!`);
         setCertificateFormData({ certificate_type: 'Good Moral', purpose: '', notes: '' });
         setShowCertificateModal(false);
+        // Refresh the certificate requests list
+        setRefreshCertificates(prev => prev + 1);
       }
     } catch (err) {
       console.error('Error submitting certificate request:', err);
@@ -379,6 +440,7 @@ const StudentDashboard = () => {
 
   const sidebarItems = [
     { id: 'overview', label: 'Overview', icon: Home },
+    { id: 'announcements', label: 'Announcements', icon: Megaphone },
     { id: 'appointments', label: 'Appointments', icon: Calendar },
     { id: 'messages', label: 'Messages', icon: MessageSquare },
     { id: 'reviews', label: 'Counselor Reviews', icon: Star },
@@ -388,224 +450,368 @@ const StudentDashboard = () => {
   ];
 
   return (
-    <div className="flex h-screen bg-gradient-to-br from-green-50 via-emerald-50 to-teal-50 dark:from-gray-900 dark:via-green-900 dark:to-teal-900">
-      {/* Sidebar */}
-      <div
-        className={`${
-          sidebarOpen ? 'w-64' : 'w-20'
-        } bg-white dark:bg-gray-800 shadow-lg transition-all duration-300 fixed h-full z-40 flex flex-col border-r-2 border-green-200 dark:border-green-700`}
-      >
-        {/* Logo */}
-        <div className="flex items-center justify-between h-20 px-6 border-b-2 border-green-200 dark:border-green-700 flex-shrink-0 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20">
-          {sidebarOpen && (
-            <div className="flex items-center gap-2">
-              <div className="w-10 h-10 bg-gradient-to-br from-green-600 to-emerald-600 rounded-lg flex items-center justify-center shadow-md">
-                <span className="text-white font-bold text-lg">🌿</span>
-              </div>
-              <div>
-                <span className="font-bold text-lg bg-gradient-to-r from-green-700 to-emerald-700 bg-clip-text text-transparent">Guidance</span>
-                <p className="text-xs text-green-600">MSU Bongabong</p>
-              </div>
-            </div>
-          )}
-          <button
-            onClick={() => setSidebarOpen(!sidebarOpen)}
-            className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg"
-          >
-            {sidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-          </button>
+    <>
+      <DashboardNavbar user={user} userRole="student" activeTab={activeTab} onTabChange={setActiveTab} />
+      <div className="min-h-screen bg-gradient-to-br from-green-50 via-emerald-50 to-teal-50 dark:from-gray-950 dark:via-green-950 dark:to-teal-950 flex animate-fade-in">
+      {/* Sidebar with Enhanced Design */}
+      <div className="w-64 bg-gradient-to-b from-green-50 to-emerald-50 dark:from-green-900/30 dark:to-emerald-900/40 shadow-2xl fixed left-0 top-16 h-[calc(100vh-4rem)] overflow-y-auto border-r-2 border-green-300 dark:border-green-800">
+        <div className="p-6">
+          <h2 className="text-xl font-bold bg-gradient-to-r from-green-600 via-emerald-600 to-teal-600 bg-clip-text text-transparent mb-8">🌿 Student Menu</h2>
+          
+          <nav className="space-y-2">
+            <button
+              onClick={() => setActiveTab('overview')}
+              className={`w-full text-left px-4 py-3 rounded-lg font-medium transition transform duration-300 ${
+                activeTab === 'overview'
+                  ? 'bg-gradient-to-r from-green-500 via-emerald-500 to-teal-500 text-white shadow-lg scale-105 card-hover'
+                  : 'text-gray-700 dark:text-gray-300 hover:bg-green-100 dark:hover:bg-green-800/30'
+              }`}
+            >
+              📊 Dashboard
+            </button>
+            
+            <button
+              onClick={() => setActiveTab('appointments')}
+              className={`w-full text-left px-4 py-3 rounded-lg font-medium transition transform duration-300 ${
+                activeTab === 'appointments'
+                  ? 'bg-gradient-to-r from-emerald-500 to-green-500 text-white shadow-lg scale-105 card-hover'
+                  : 'text-gray-700 dark:text-gray-300 hover:bg-emerald-100 dark:hover:bg-emerald-800/30'
+              }`}
+            >
+              📅 Appointments
+            </button>
+            
+            <button
+              onClick={() => setActiveTab('certificates')}
+              className={`w-full text-left px-4 py-3 rounded-lg font-medium transition ${
+                activeTab === 'certificates'
+                  ? 'bg-gradient-to-r from-green-600 to-emerald-600 text-white shadow-lg'
+                  : 'text-gray-700 dark:text-gray-300 hover:bg-green-100 dark:hover:bg-green-800/30'
+              }`}
+            >
+              🎖️ Certificates
+            </button>
+            
+            <button
+              onClick={() => setActiveTab('messages')}
+              className={`w-full text-left px-4 py-3 rounded-lg font-medium transition ${
+                activeTab === 'messages'
+                  ? 'bg-gradient-to-r from-green-600 to-emerald-600 text-white shadow-lg'
+                  : 'text-gray-700 dark:text-gray-300 hover:bg-green-100 dark:hover:bg-green-800/30'
+              }`}
+            >
+              💬 Messages
+            </button>
+            
+            <button
+              onClick={() => setActiveTab('announcements')}
+              className={`w-full text-left px-4 py-3 rounded-lg font-medium transition flex items-center gap-2 ${
+                activeTab === 'announcements'
+                  ? 'bg-gradient-to-r from-green-600 to-emerald-600 text-white shadow-lg'
+                  : 'text-gray-700 dark:text-gray-300 hover:bg-green-100 dark:hover:bg-green-800/30'
+              }`}
+            >
+              <Megaphone className="w-4 h-4" />
+              Announcements
+            </button>
+
+
+ <button
+              onClick={() => setActiveTab('tips')}
+              className={`w-full text-left px-4 py-3 rounded-lg font-medium transition ${
+                activeTab === 'tips'
+                  ? 'bg-gradient-to-r from-green-600 to-emerald-600 text-white shadow-lg'
+                  : 'text-gray-700 dark:text-gray-300 hover:bg-green-100 dark:hover:bg-green-800/30'
+              }`}
+            >
+              👤 AI Chatbot
+            </button>
+
+
+            <button
+              onClick={() => setActiveTab('reviews')}
+              className={`w-full text-left px-4 py-3 rounded-lg font-medium transition flex items-center gap-2 ${
+                activeTab === 'reviews'
+                  ? 'bg-gradient-to-r from-green-600 to-emerald-600 text-white shadow-lg'
+                  : 'text-gray-700 dark:text-gray-300 hover:bg-green-100 dark:hover:bg-green-800/30'
+              }`}
+            >
+              ⭐ Reviews
+            </button>
+
+            <button
+              onClick={() => setActiveTab('profile')}
+              className={`w-full text-left px-4 py-3 rounded-lg font-medium transition ${
+                activeTab === 'profile'
+                  ? 'bg-gradient-to-r from-green-600 to-emerald-600 text-white shadow-lg'
+                  : 'text-gray-700 dark:text-gray-300 hover:bg-green-100 dark:hover:bg-green-800/30'
+              }`}
+            >
+              👤 Profile
+            </button>
+          </nav>
         </div>
 
-        {/* Navigation */}
-        <nav className="mt-8 px-4 space-y-2 flex-1 overflow-y-auto">
-          {sidebarItems.map(item => {
-            const Icon = item.icon;
-            return (
-              <button
-                key={item.id}
-                onClick={() => setActiveTab(item.id)}
-                className={`w-full flex items-center gap-4 px-4 py-3 rounded-lg transition-all duration-300 ${
-                  activeTab === item.id
-                    ? 'bg-gradient-to-r from-green-600 to-emerald-600 text-white shadow-md scale-105'
-                    : 'text-gray-700 dark:text-gray-300 hover:bg-green-100 dark:hover:bg-green-900/30 hover:text-green-700'
-                }`}
-              >
-                <Icon className="w-5 h-5 flex-shrink-0" />
-                {sidebarOpen && <span className="font-medium">{item.label}</span>}
-              </button>
-            );
-          })}
-        </nav>
-
-        {/* Logout */}
-        <div className="p-4 border-t-2 border-green-200 dark:border-green-700 flex-shrink-0">
+        {/* Profile Section in Sidebar - Enhanced */}
+        <div className="p-6 border-t-2 border-green-300 dark:border-green-800 mt-8 space-y-4 bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-900/30 dark:to-emerald-900/40 rounded-xl mx-2 mb-2">
+          <div className="mb-4">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-12 h-12 bg-gradient-to-br from-green-600 to-emerald-600 rounded-full flex items-center justify-center text-white font-bold text-lg shadow-md">
+                {user?.name?.charAt(0)?.toUpperCase() || 'S'}
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-xs text-gray-600 dark:text-gray-400 uppercase font-semibold tracking-wide">Logged in as</p>
+                <p className="font-semibold text-gray-900 dark:text-white truncate text-sm">{user?.name}</p>
+              </div>
+            </div>
+            <p className="text-xs text-gray-600 dark:text-gray-400 truncate">{user?.email}</p>
+          </div>
+          <button
+            onClick={() => {}}
+            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white rounded-lg text-sm font-medium transition transform hover:scale-105 shadow-md"
+          >
+            <User className="w-4 h-4" />
+            Edit Profile
+          </button>
           <button
             onClick={handleLogout}
-            className="w-full flex items-center justify-center gap-3 px-4 py-3 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white dark:from-red-600 dark:to-red-700 dark:hover:from-red-700 dark:hover:to-red-800 rounded-lg transition font-bold hover:scale-105 shadow-md"
-            title="Logout from your account"
+            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white rounded-lg text-sm font-medium transition transform hover:scale-105 shadow-md"
           >
-            <LogOut className="w-5 h-5 flex-shrink-0" />
-            {sidebarOpen && <span>Logout</span>}
+            <LogOut className="w-4 h-4" />
+            Logout
           </button>
         </div>
       </div>
 
-      {/* Main Content */}
-      <div className={`${sidebarOpen ? 'ml-64' : 'ml-20'} flex-1 flex flex-col overflow-hidden transition-all duration-300`}>
-        {/* Top Bar */}
-        <div className="h-20 bg-gradient-to-r from-green-600 via-emerald-600 to-teal-600 dark:from-green-700 dark:via-emerald-700 dark:to-teal-700 shadow-lg border-b-2 border-green-500 flex items-center justify-between px-8">
-          <div className="flex-1 max-w-md">
-            <div className="relative">
-              <Search className="absolute left-3 top-3 w-5 h-5 text-green-200" />
-              <input
-                type="text"
-                placeholder="Search..."
-                className="w-full pl-10 pr-4 py-2 border-2 border-green-300 dark:border-green-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-400 dark:bg-gray-700 dark:text-white bg-white/90 placeholder-gray-500"
-              />
-            </div>
-          </div>
+      {/* Main Content Area */}
+      <div className="flex-1 ml-64 overflow-auto">
+        <style>{`
+        @keyframes fadeInUp {
+          from {
+            opacity: 0;
+            transform: translateY(20px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
 
-          <div className="flex items-center gap-6 ml-8">
-            {/* Theme Toggle */}
-            <button
-              onClick={toggleTheme}
-              className="flex items-center gap-2 px-3 py-2 bg-white/20 hover:bg-white/30 text-white rounded-lg transition-all duration-300 border border-white/30 font-bold"
-              title={`Switch to ${isDark ? 'light' : 'dark'} mode`}
-            >
-              {isDark ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
-            </button>
+        @keyframes slideInRight {
+          from {
+            opacity: 0;
+            transform: translateX(-20px);
+          }
+          to {
+            opacity: 1;
+            transform: translateX(0);
+          }
+        }
 
-            {/* Send Report Button */}
-            <button
-              onClick={() => setShowReportForm(true)}
-              className="flex items-center gap-2 px-4 py-2 bg-white text-green-600 dark:text-green-700 rounded-lg hover:bg-green-50 transition-all duration-300 font-bold hover:shadow-lg"
-              title="Send Report or Feedback"
-            >
-              <Flag className="w-5 h-5" />
-              <span className="hidden sm:inline text-sm font-medium">Send Report</span>
-            </button>
+        @keyframes slideDown {
+          from {
+            opacity: 0;
+            transform: translateY(-10px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
 
-            {/* Wellness Tips Button */}
-            <button
-              onClick={() => setActiveTab('tips')}
-              className="flex items-center gap-2 px-4 py-2 bg-white text-green-600 dark:text-green-700 rounded-lg hover:bg-green-50 transition-all duration-300 font-bold hover:shadow-lg"
-              title="Wellness Tips"
-            >
-              <Lightbulb className="w-5 h-5" />
-              <span className="hidden sm:inline text-sm font-medium">Tips</span>
-            </button>
+        @keyframes fadeIn {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
 
-            {/* Request Certificates Button */}
-            <button
-              onClick={() => setShowCertificateModal(true)}
-              className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition"
-              title="Request Certificates"
-            >
-              <Award className="w-5 h-5" />
-              <span className="hidden sm:inline text-sm font-medium">Request</span>
-            </button>
+        @keyframes pulse-soft {
+          0%, 100% {
+            opacity: 1;
+          }
+          50% {
+            opacity: 0.7;
+          }
+        }
 
-            {/* Notifications */}
-            <div className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg relative cursor-pointer">
-              <Bell className="w-6 h-6 text-gray-600 dark:text-gray-400" />
-              <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
-            </div>
+        @keyframes float {
+          0%, 100% {
+            transform: translateY(0px);
+          }
+          50% {
+            transform: translateY(-8px);
+          }
+        }
 
-            {/* User Menu */}
-            <div className="flex items-center gap-3 pl-6 border-l-2 border-white/30">
-              <div className="w-10 h-10 bg-white/20 border-2 border-white rounded-full flex items-center justify-center shadow-md">
-                <span className="text-white font-bold text-sm">
-                  {user?.name?.charAt(0).toUpperCase() || 'S'}
-                </span>
-              </div>
-              <div className="hidden sm:block">
-                <p className="text-sm font-bold text-white">{user?.name || 'Student'}</p>
-                <p className="text-xs text-green-100">{user?.email || ''}</p>
-              </div>
-            </div>
-          </div>
-        </div>
+        @keyframes shimmer {
+          0% {
+            background-position: -1000px 0;
+          }
+          100% {
+            background-position: 1000px 0;
+          }
+        }
 
-        {/* Content Area */}
-        <div className="flex-1 overflow-auto p-8">
+        @keyframes spinSlow {
+          from {
+            transform: rotate(0deg);
+          }
+          to {
+            transform: rotate(360deg);
+          }
+        }
+
+        .animate-slide-down {
+          animation: slideDown 0.3s ease-out forwards;
+        }
+
+        .animate-fade-in {
+          animation: fadeIn 0.5s ease-out forwards;
+        }
+
+        .animate-spin-slow {
+          animation: spinSlow 3s linear infinite;
+        }
+
+        .animate-fade-in-up {
+          animation: fadeInUp 0.6s ease-out forwards;
+        }
+
+        .animate-slide-in-right {
+          animation: slideInRight 0.5s ease-out forwards;
+        }
+
+        .animate-pulse-soft {
+          animation: pulse-soft 3s ease-in-out infinite;
+        }
+
+        .animate-float {
+          animation: float 3s ease-in-out infinite;
+        }
+
+        .stat-card {
+          transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        .stat-card:hover {
+          transform: translateY(-4px);
+          box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+        }
+
+        .activity-item {
+          transition: all 0.3s ease;
+        }
+
+        .activity-item:hover {
+          transform: translateX(4px);
+          background-color: rgba(34, 197, 94, 0.05);
+        }
+
+        .tab-button {
+          transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+          position: relative;
+        }
+
+        .tab-button::after {
+          content: '';
+          position: absolute;
+          bottom: -2px;
+          left: 0;
+          right: 0;
+          height: 2px;
+          background: currentColor;
+          transform: scaleX(0);
+          transform-origin: right;
+          transition: transform 0.3s ease;
+        }
+
+        .tab-button.active::after {
+          transform: scaleX(1);
+          transform-origin: left;
+        }
+      `}</style>
+
+        <div className="p-8">
           {/* Overview Tab */}
           {activeTab === 'overview' && (
             <div className="space-y-8">
               {/* Stats */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-                <div className="bg-white/80 dark:bg-gray-800/80 rounded-xl shadow-lg p-6 border-2 border-green-200 dark:border-green-700 hover:shadow-xl transition-all duration-300 hover:scale-105">
+                <div className="stat-card bg-white/80 dark:bg-gray-800/80 rounded-2xl shadow-lg p-6 border-2 border-green-200 dark:border-green-700 hover:shadow-2xl">
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-green-600 dark:text-green-400 text-sm font-semibold">Upcoming Sessions</p>
                       <p className="text-3xl font-bold text-green-700 dark:text-green-300 mt-2">{stats.upcoming_sessions}</p>
                     </div>
-                    <Clock className="w-10 h-10 text-green-400 opacity-30" />
+                    <Clock className="w-12 h-12 text-green-400 opacity-25" />
                   </div>
                 </div>
 
-                <div className="bg-white/80 dark:bg-gray-800/80 rounded-xl shadow-lg p-6 border-2 border-emerald-200 dark:border-emerald-700 hover:shadow-xl transition-all duration-300 hover:scale-105">
+                <div className="stat-card bg-white/80 dark:bg-gray-800/80 rounded-2xl shadow-lg p-6 border-2 border-emerald-200 dark:border-emerald-700 hover:shadow-2xl">
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-emerald-600 dark:text-emerald-400 text-sm font-semibold">Completed Sessions</p>
                       <p className="text-3xl font-bold text-emerald-700 dark:text-emerald-300 mt-2">{stats.completed_sessions}</p>
                     </div>
-                    <CheckCircle className="w-10 h-10 text-emerald-400 opacity-30" />
+                    <CheckCircle className="w-12 h-12 text-emerald-400 opacity-25" />
                   </div>
                 </div>
 
-                <div className="bg-white/80 dark:bg-gray-800/80 rounded-xl shadow-lg p-6 border-2 border-teal-200 dark:border-teal-700 hover:shadow-xl transition-all duration-300 hover:scale-105">
+                <div className="stat-card bg-white/80 dark:bg-gray-800/80 rounded-2xl shadow-lg p-6 border-2 border-teal-200 dark:border-teal-700 hover:shadow-2xl">
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-teal-600 dark:text-teal-400 text-sm font-semibold">Total Sessions</p>
                       <p className="text-3xl font-bold text-teal-700 dark:text-teal-300 mt-2">{stats.total_sessions}</p>
                     </div>
-                    <MessageSquare className="w-10 h-10 text-teal-400 opacity-30" />
+                    <MessageSquare className="w-12 h-12 text-teal-400 opacity-25 animate-pulse-soft" />
                   </div>
                 </div>
 
-                <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+                <div className="stat-card bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6 border-2 border-yellow-200 dark:border-yellow-700 hover:shadow-2xl" style={{animation: 'fadeInUp 0.6s ease-out 0.3s backwards'}}>
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-gray-600 dark:text-gray-400 text-sm">Messages</p>
-                      <p className="text-3xl font-bold text-gray-900 dark:text-white mt-2">{stats.messages}</p>
+                      <p className="text-yellow-600 dark:text-yellow-400 text-sm font-semibold">Messages</p>
+                      <p className="text-3xl font-bold text-yellow-900 dark:text-yellow-200 mt-2 animate-float">{stats.messages}</p>
                     </div>
-                    <MessageSquare className="w-10 h-10 text-yellow-500 opacity-20" />
+                    <MessageSquare className="w-12 h-12 text-yellow-500 opacity-20 animate-pulse-soft" />
                   </div>
                 </div>
 
-                <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+                <div className="stat-card bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6 border-2 border-orange-200 dark:border-orange-700 hover:shadow-2xl" style={{animation: 'fadeInUp 0.6s ease-out 0.4s backwards'}}>
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-gray-600 dark:text-gray-400 text-sm">Resources</p>
-                      <p className="text-3xl font-bold text-gray-900 dark:text-white mt-2">{stats.resources}</p>
+                      <p className="text-orange-600 dark:text-orange-400 text-sm font-semibold">Resources</p>
+                      <p className="text-3xl font-bold text-orange-900 dark:text-orange-200 mt-2 animate-float">{stats.resources}</p>
                     </div>
-                    <FileText className="w-10 h-10 text-orange-500 opacity-20" />
+                    <FileText className="w-12 h-12 text-orange-500 opacity-20 animate-pulse-soft" />
                   </div>
                 </div>
               </div>
 
               {/* Recent Activities */}
-              <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-                <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Recent Activities</h2>
+              <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6 border border-green-200 dark:border-green-700 mt-8">
+                <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">Recent Activities</h2>
                 {recentActivities.length > 0 ? (
-                  <div className="space-y-4">
+                  <div className="space-y-3">
                     {recentActivities.map((activity, index) => (
-                      <div key={activity.id || index} className="flex items-center gap-4 p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
-                        <div className="w-10 h-10 bg-indigo-100 dark:bg-indigo-900/30 rounded-full flex items-center justify-center flex-shrink-0">
-                          <Clock className="w-5 h-5 text-indigo-600" />
+                      <div 
+                        key={activity.id || index} 
+                        className="activity-item flex items-center gap-4 p-4 bg-gray-50 dark:bg-gray-700/50 rounded-xl border border-gray-200 dark:border-gray-600"
+                      >
+                        <div className="w-12 h-12 bg-green-500 rounded-full flex items-center justify-center flex-shrink-0">
+                          <Clock className="w-6 h-6 text-white" />
                         </div>
                         <div className="flex-1">
-                          <p className="text-gray-900 dark:text-white font-medium">Session with {activity.counselor_name}</p>
-                          <p className="text-sm text-gray-600 dark:text-gray-400">{activity.topic}</p>
+                          <p className="text-gray-900 dark:text-white font-semibold">Session with {activity.counselor_name}</p>
+                          <p className="text-sm text-gray-600 dark:text-gray-400 mt-0.5">{activity.topic}</p>
                         </div>
-                        <span className="text-xs px-2 py-1 bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 rounded-full capitalize">
+                        <span className="text-xs px-3 py-1 bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-300 rounded-full font-medium capitalize whitespace-nowrap">
                           {activity.status}
                         </span>
                       </div>
                     ))}
                   </div>
                 ) : (
-                  <p className="text-gray-600 dark:text-gray-400 text-center py-8">No recent activities yet.</p>
+                  <p className="text-gray-600 dark:text-gray-400 text-center py-8 text-sm">No recent activities yet</p>
                 )}
               </div>
             </div>
@@ -613,12 +819,15 @@ const StudentDashboard = () => {
 
           {/* Appointments Tab */}
           {activeTab === 'appointments' && (
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-              <div className="flex items-center justify-between mb-6">
-                <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Your Appointments</h1>
+            <div className="space-y-6" style={{animation: 'fadeInUp 0.6s ease-out'}}>
+              <div className="flex items-center justify-between mb-8">
+                <div>
+                  <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Your Appointments</h1>
+                  <p className="text-gray-600 dark:text-gray-400 mt-2">Manage your counseling sessions</p>
+                </div>
                 <button
                   onClick={() => setShowBookingModal(true)}
-                  className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition font-medium"
+                  className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105"
                 >
                   <Plus className="w-5 h-5" />
                   Book Appointment
@@ -628,69 +837,76 @@ const StudentDashboard = () => {
                 <div className="space-y-4">
                   {upcomingAppointments.map((apt, index) => {
                     const statusColors = {
-                      pending: 'bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-700',
-                      approved: 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-700',
-                      rejected: 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-700',
-                      completed: 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-700'
+                      pending: 'bg-gradient-to-br from-yellow-50 to-yellow-100 dark:from-yellow-900/20 dark:to-yellow-900/10 border-yellow-300 dark:border-yellow-700',
+                      approved: 'bg-gradient-to-br from-green-50 to-emerald-100 dark:from-green-900/20 dark:to-emerald-900/10 border-green-300 dark:border-green-700',
+                      rejected: 'bg-gradient-to-br from-red-50 to-red-100 dark:from-red-900/20 dark:to-red-900/10 border-red-300 dark:border-red-700',
+                      completed: 'bg-gradient-to-br from-blue-50 to-cyan-100 dark:from-blue-900/20 dark:to-cyan-900/10 border-blue-300 dark:border-blue-700'
                     };
                     
                     const statusBadgeColors = {
-                      pending: 'bg-yellow-200 dark:bg-yellow-700 text-yellow-900 dark:text-yellow-200',
-                      approved: 'bg-green-200 dark:bg-green-700 text-green-900 dark:text-green-200',
-                      rejected: 'bg-red-200 dark:bg-red-700 text-red-900 dark:text-red-200',
-                      completed: 'bg-blue-200 dark:bg-blue-700 text-blue-900 dark:text-blue-200'
+                      pending: 'bg-yellow-300 dark:bg-yellow-700 text-yellow-900 dark:text-yellow-100',
+                      approved: 'bg-green-300 dark:bg-green-700 text-green-900 dark:text-green-100',
+                      rejected: 'bg-red-300 dark:bg-red-700 text-red-900 dark:text-red-100',
+                      completed: 'bg-blue-300 dark:bg-blue-700 text-blue-900 dark:text-blue-100'
                     };
 
                     const currentStatus = apt.status || 'pending';
                     
                     return (
-                      <div key={apt.id || index} className={`p-4 border-2 rounded-lg ${statusColors[currentStatus]}`}>
-                        <div className="flex items-start justify-between mb-3">
+                      <div 
+                        key={apt.id || index} 
+                        className={`p-6 border-2 rounded-2xl ${statusColors[currentStatus]} shadow-md hover:shadow-xl transition-all duration-300 transform hover:scale-102`}
+                        style={{animation: `slideInRight 0.5s ease-out ${0.2 + index * 0.1}s backwards`}}
+                      >
+                        <div className="flex items-start justify-between mb-4">
                           <div className="flex-1">
-                            <p className="font-semibold text-gray-900 dark:text-white text-lg">{apt.topic || 'Appointment Request'}</p>
-                            <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">Counselor: {apt.counselor_name}</p>
+                            <p className="font-bold text-gray-900 dark:text-white text-lg">{apt.topic || 'Appointment Request'}</p>
+                            <p className="text-sm text-gray-700 dark:text-gray-300 mt-1">👨‍💼 Counselor: {apt.counselor_name}</p>
                           </div>
-                          <span className={`px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap ml-2 ${statusBadgeColors[currentStatus]}`}>
+                          <span className={`px-4 py-2 rounded-full text-sm font-bold whitespace-nowrap ml-2 ${statusBadgeColors[currentStatus]} shadow-md`}>
                             {currentStatus.charAt(0).toUpperCase() + currentStatus.slice(1)}
                           </span>
                         </div>
                         
-                        <div className="space-y-2 text-sm">
+                        <div className="space-y-2.5 text-sm text-gray-700 dark:text-gray-300">
                           {apt.requested_date && (
-                            <p className="text-gray-600 dark:text-gray-400">
-                              📅 Date: <span className="font-medium">{apt.requested_date}</span>
+                            <p className="flex items-center gap-2">
+                              <span className="text-lg">📅</span>
+                              <span>Date: <span className="font-semibold text-gray-900 dark:text-white">{apt.requested_date}</span></span>
                             </p>
                           )}
                           {apt.requested_time && (
-                            <p className="text-gray-600 dark:text-gray-400">
-                              🕐 Time: <span className="font-medium">{apt.requested_time}</span>
+                            <p className="flex items-center gap-2">
+                              <span className="text-lg">🕐</span>
+                              <span>Time: <span className="font-semibold text-gray-900 dark:text-white">{apt.requested_time}</span></span>
                             </p>
                           )}
                           {apt.notes && (
-                            <p className="text-gray-600 dark:text-gray-400">
-                              📝 Notes: <span className="font-medium">{apt.notes}</span>
+                            <p className="flex items-center gap-2">
+                              <span className="text-lg">📝</span>
+                              <span>Notes: <span className="font-semibold text-gray-900 dark:text-white">{apt.notes}</span></span>
                             </p>
                           )}
                         </div>
 
                         {currentStatus === 'pending' && (
-                          <div className="mt-3 p-2 bg-yellow-100 dark:bg-yellow-900/30 rounded text-xs text-yellow-800 dark:text-yellow-200">
-                            ⏳ Waiting for counselor response...
+                          <div className="mt-4 p-3 bg-yellow-200/50 dark:bg-yellow-700/30 rounded-lg text-sm text-yellow-900 dark:text-yellow-200 font-medium flex items-center gap-2">
+                            <span className="animate-spin">⏳</span> Waiting for counselor response...
                           </div>
                         )}
                         {currentStatus === 'approved' && (
-                          <div className="mt-3 p-2 bg-green-100 dark:bg-green-900/30 rounded text-xs text-green-800 dark:text-green-200">
-                            ✅ Appointment approved! Check your messages for details.
+                          <div className="mt-4 p-3 bg-green-200/50 dark:bg-green-700/30 rounded-lg text-sm text-green-900 dark:text-green-200 font-medium flex items-center gap-2">
+                            <span>✅</span> Appointment approved! Check your messages for details.
                           </div>
                         )}
                         {currentStatus === 'rejected' && (
-                          <div className="mt-3 p-2 bg-red-100 dark:bg-red-900/30 rounded text-xs text-red-800 dark:text-red-200">
-                            ❌ Appointment was rejected. Please try booking another time.
+                          <div className="mt-4 p-3 bg-red-200/50 dark:bg-red-700/30 rounded-lg text-sm text-red-900 dark:text-red-200 font-medium flex items-center gap-2">
+                            <span>❌</span> Appointment was rejected. Please try booking another time.
                           </div>
                         )}
                         {currentStatus === 'completed' && (
-                          <div className="mt-3 p-2 bg-blue-100 dark:bg-blue-900/30 rounded text-xs text-blue-800 dark:text-blue-200">
-                            ✔️ Appointment completed.
+                          <div className="mt-4 p-3 bg-blue-200/50 dark:bg-blue-700/30 rounded-lg text-sm text-blue-900 dark:text-blue-200 font-medium flex items-center gap-2">
+                            <span>✔️</span> Appointment completed.
                           </div>
                         )}
                       </div>
@@ -698,7 +914,10 @@ const StudentDashboard = () => {
                   })}
                 </div>
               ) : (
-                <p className="text-gray-600 dark:text-gray-400 text-center py-8">No appointments yet. Click "Book Appointment" to create one.</p>
+                <div className="text-center py-16">
+                  <div className="text-6xl mb-4">📅</div>
+                  <p className="text-gray-600 dark:text-gray-400 text-lg">No appointments yet. Click "Book Appointment" to create one.</p>
+                </div>
               )}
             </div>
           )}
@@ -848,6 +1067,11 @@ const StudentDashboard = () => {
           {/* Counselor Reviews Tab */}
           {activeTab === 'reviews' && (
             <CounselorReviewsForm />
+          )}
+
+          {/* Announcements Tab */}
+          {activeTab === 'announcements' && (
+            <StudentAnnouncementsTab />
           )}
 
           {/* Wellness Tips Tab */}
@@ -1171,7 +1395,8 @@ const StudentDashboard = () => {
 
       {/* Tips Bot Modal */}
       <TipsBot isOpen={showTipsBot} onClose={() => setShowTipsBot(false)} />
-    </div>
+      </div>
+    </>
   );
 };
 

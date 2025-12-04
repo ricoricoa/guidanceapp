@@ -2,10 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { 
   LogOut, Menu, X, Users, BarChart3, LogIn, AlertCircle, 
   FileText, Search, ChevronDown, Eye, Trash2, Edit, Plus,
-  TrendingUp, UserCheck, Clock, Star
+  TrendingUp, UserCheck, Clock, Star, User
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import api from '../api/axios';
+import DashboardNavbar from '../components/DashboardNavbar';
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
@@ -21,6 +22,8 @@ const AdminDashboard = () => {
   const [reviews, setReviews] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterRole, setFilterRole] = useState('all');
+  const [selectedUser, setSelectedUser] = useState(null);
+  const [showDetailModal, setShowDetailModal] = useState(false);
 
   // Fetch admin dashboard data
   useEffect(() => {
@@ -101,11 +104,41 @@ const AdminDashboard = () => {
           console.warn('Reviews fetch failed:', err.message);
         }
 
-        // Mock reports for now
-        setReports([
-          { id: 1, user_name: 'Juan Dela Cruz', report_type: 'System Issue', title: 'Chat feature not loading', description: 'When I click messages, the counselor list does not appear', created_at: new Date(Date.now() - 86400000), status: 'open', priority: 'high' },
-          { id: 2, user_name: 'Maria Santos Jr', report_type: 'Suggestion', title: 'Add file sharing', description: 'Would be great to share documents with counselor', created_at: new Date(Date.now() - 172800000), status: 'in-progress', priority: 'medium' },
-        ]);
+        // Fetch student reports
+        try {
+          const reportsRes = await api.get('/api/v1/reports');
+          console.log('Raw Reports response:', reportsRes.data);
+          if (mounted) {
+            // Laravel paginated response structure: 
+            // API returns { data: <PaginatedObject>, message: "..." }
+            // PaginatedObject serializes to { data: [...], current_page, per_page, total, ... }
+            // So we get: reportsRes.data = { data: { data: [...], ... }, message: "..." }
+            
+            let reportsData = [];
+            
+            // The actual array is at reportsRes.data.data.data
+            if (reportsRes.data?.data?.data && Array.isArray(reportsRes.data.data.data)) {
+              reportsData = reportsRes.data.data.data;
+              console.log('✓ Extracted reports from reportsRes.data.data.data');
+            }
+            // Fallback: check if reportsRes.data.data is already an array (flat structure)
+            else if (Array.isArray(reportsRes.data.data)) {
+              reportsData = reportsRes.data.data;
+              console.log('✓ Extracted reports from reportsRes.data.data');
+            }
+            // Fallback: check if reportsRes.data is directly an array
+            else if (Array.isArray(reportsRes.data)) {
+              reportsData = reportsRes.data;
+              console.log('✓ Extracted reports from reportsRes.data');
+            }
+            
+            setReports(reportsData);
+            console.log(`✓ Reports loaded: ${reportsData.length} reports`);
+          }
+        } catch (err) {
+          console.error('✗ Reports fetch failed:', err.message);
+          if (mounted) setReports([]);
+        }
 
       } catch (err) {
         console.error('Unexpected error fetching dashboard:', err);
@@ -165,8 +198,14 @@ const AdminDashboard = () => {
         return 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400';
       case 'in-progress':
         return 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400';
+      case 'pending':
+        return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400';
+      case 'reviewed':
+        return 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400';
       case 'resolved':
         return 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400';
+      case 'closed':
+        return 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300';
       default:
         return 'bg-gray-100 text-gray-800';
     }
@@ -214,140 +253,169 @@ const AdminDashboard = () => {
   ];
 
   return (
-    <div className="flex h-screen bg-gray-100 dark:bg-gray-900">
-      {/* Sidebar */}
+    <>
+      <DashboardNavbar user={user} userRole="admin" activeTab={activeTab} onTabChange={setActiveTab} />
+      <div className="flex h-[calc(100vh-4rem)] bg-gradient-to-br from-slate-50 via-purple-50 to-blue-50 dark:from-gray-950 dark:via-purple-950 dark:to-blue-950 animate-fade-in">
+      {/* Sidebar - Enhanced */}
       <div
         className={`${
           sidebarOpen ? 'w-64' : 'w-20'
-        } bg-white dark:bg-gray-800 shadow-lg transition-all duration-300 fixed h-full z-40 flex flex-col border-r border-gray-200 dark:border-gray-700`}
+        } bg-gradient-to-b from-green-50 to-emerald-50 dark:from-green-900/30 dark:to-emerald-900/40 shadow-2xl transition-all duration-300 fixed h-full z-40 flex flex-col overflow-y-auto border-r border-green-200 dark:border-green-900/50`}
       >
         {/* Logo */}
-        <div className="flex items-center justify-between h-20 px-6 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
+        <div className="flex items-center justify-between h-20 px-6 border-b border-green-200 dark:border-green-900/50 flex-shrink-0 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/30 dark:to-emerald-900/30">
           {sidebarOpen && (
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold text-sm">A</span>
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-gradient-to-br from-green-600 to-emerald-600 rounded-lg flex items-center justify-center shadow-lg transform hover:scale-110 transition-transform duration-300">
+                <span className="text-white font-bold text-sm">🌿</span>
               </div>
-              <span className="font-bold text-lg text-gray-900 dark:text-white">Admin</span>
+              <span className="font-bold text-lg bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">Admin Panel</span>
             </div>
           )}
           <button
             onClick={() => setSidebarOpen(!sidebarOpen)}
-            className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg"
+            className="p-2 hover:bg-green-100 dark:hover:bg-green-900/20 rounded-lg transition transform hover:scale-110 duration-300"
           >
             {sidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
           </button>
         </div>
 
-        {/* Navigation */}
-        <nav className="px-4 space-y-2 flex-1 overflow-y-auto mt-6">
-          {sidebarItems.map(item => {
+        {/* Navigation - Enhanced */}
+        <nav className="px-4 space-y-1 overflow-y-auto py-6">
+          {sidebarItems.map((item, idx) => {
             const Icon = item.icon;
             return (
               <button
                 key={item.id}
                 onClick={() => setActiveTab(item.id)}
-                className={`w-full flex items-center gap-4 px-4 py-3 rounded-lg transition ${
+                className={`w-full flex items-center gap-4 px-4 py-3 rounded-xl transition transform duration-300 ${
                   activeTab === item.id
-                    ? 'bg-indigo-600 text-white'
-                    : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+                    ? 'bg-gradient-to-r from-green-600 to-emerald-600 text-white shadow-lg scale-105 card-hover'
+                    : 'text-gray-700 dark:text-gray-300 hover:bg-green-100 dark:hover:bg-green-900/20'
                 }`}
+                style={{
+                  animation: `slideInFromLeft 0.4s ease-out ${idx * 0.05}s backwards`
+                }}
               >
                 <Icon className="w-5 h-5 flex-shrink-0" />
-                {sidebarOpen && <span className="font-medium">{item.label}</span>}
+                {sidebarOpen && <span className="font-medium text-sm">{item.label}</span>}
               </button>
             );
           })}
         </nav>
 
-        {/* Logout */}
-        <div className="px-4 pb-4 pt-2 border-t border-gray-200 dark:border-gray-700 flex-shrink-0 space-y-2">
-          {sidebarOpen && (
-            <div className="p-3 bg-gradient-to-br from-indigo-50 to-blue-50 dark:from-indigo-900/20 dark:to-blue-900/20 rounded-lg">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 bg-gradient-to-br from-indigo-600 to-blue-600 rounded-full flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
-                  {user?.name?.charAt(0)?.toUpperCase() || 'A'}
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="text-xs text-gray-600 dark:text-gray-400 uppercase font-semibold">Admin</p>
-                  <p className="text-xs font-semibold text-gray-900 dark:text-white truncate">{user?.name}</p>
-                </div>
+        {/* Profile Section at Bottom - Enhanced */}
+        <div className="sticky bottom-0 p-4 border-t border-green-200 dark:border-green-900/50 space-y-3 bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-t-2xl mx-2 mb-2">
+          <div>
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-12 h-12 bg-gradient-to-br from-green-600 to-emerald-600 rounded-full flex items-center justify-center text-white font-bold text-lg shadow-lg transform hover:scale-110 transition-transform duration-300">
+                {user?.name?.charAt(0)?.toUpperCase() || 'A'}
               </div>
+              {sidebarOpen && (
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs text-gray-600 dark:text-gray-400 uppercase font-semibold tracking-wide">Logged in as</p>
+                  <p className="font-semibold text-gray-900 dark:text-white truncate text-sm">{user?.name}</p>
+                </div>
+              )}
             </div>
+            {sidebarOpen && (
+              <p className="text-xs text-gray-600 dark:text-gray-400 truncate px-1">{user?.email}</p>
+            )}
+          </div>
+          {sidebarOpen && (
+            <>
+              <button
+                onClick={() => {}}
+                className="w-full flex items-center justify-center gap-2 px-3 py-2.5 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white rounded-lg text-xs font-medium transition transform hover:scale-105 shadow-md"
+              >
+                <User className="w-3.5 h-3.5" />
+                Profile
+              </button>
+              <button
+                onClick={handleLogout}
+                className="w-full flex items-center justify-center gap-2 px-3 py-2.5 bg-gradient-to-r from-red-500 to-rose-600 hover:from-red-600 hover:to-rose-700 text-white rounded-lg text-xs font-medium transition transform hover:scale-105 shadow-md"
+              >
+                <LogOut className="w-3.5 h-3.5" />
+                Logout
+              </button>
+            </>
           )}
-          <button
-            onClick={handleLogout}
-            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 dark:from-red-600 dark:to-red-700 dark:hover:from-red-700 dark:hover:to-red-800 text-white rounded-lg transition font-medium transform hover:scale-105 shadow-md text-sm"
-          >
-            <LogOut className="w-4 h-4 flex-shrink-0" />
-            {sidebarOpen && <span>Logout</span>}
-          </button>
         </div>
       </div>
 
       {/* Main Content */}
       <div className={`${sidebarOpen ? 'ml-64' : 'ml-20'} flex-1 flex flex-col overflow-hidden transition-all duration-300`}>
-        {/* Top Bar */}
-        <div className="h-20 bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700 flex items-center justify-between px-8">
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Admin Dashboard</h1>
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-indigo-100 dark:bg-indigo-900/30 rounded-full flex items-center justify-center">
-              <span className="text-indigo-600 dark:text-indigo-400 font-semibold">
+        {/* Top Bar - Enhanced */}
+        <div className="h-20 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 shadow-lg border-b-2 border-green-200 dark:border-green-900/50 flex items-center justify-between px-8 animate-slide-in-top">
+          <h1 className="text-3xl font-bold bg-gradient-to-r from-green-600 via-emerald-600 to-teal-600 bg-clip-text text-transparent">Admin Dashboard</h1>
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 bg-gradient-to-br from-green-100 to-emerald-100 dark:from-green-900/30 dark:to-emerald-900/30 rounded-full flex items-center justify-center shadow-md transform hover:scale-110 transition-transform duration-300">
+              <span className="text-lg font-bold text-green-600 dark:text-green-400">
                 {user?.name?.charAt(0)?.toUpperCase() || 'A'}
               </span>
             </div>
             <div>
-              <p className="text-sm font-medium text-gray-900 dark:text-white">{user?.name}</p>
-              <p className="text-xs text-gray-500 dark:text-gray-400 capitalize">Admin</p>
+              <p className="text-sm font-bold text-gray-900 dark:text-white">{user?.name}</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400 capitalize font-medium">Admin</p>
             </div>
           </div>
         </div>
 
         {/* Page Content */}
-        <div className="flex-1 overflow-auto">
+        <div className="flex-1 overflow-auto bg-gradient-to-br from-green-50 via-emerald-50 to-teal-50 dark:from-gray-900 dark:via-green-900 dark:to-teal-950">
           <div className="p-8">
-            {/* Dashboard Tab */}
+            {/* Dashboard Tab - Enhanced */}
             {activeTab === 'dashboard' && (
-              <div>
-                <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">Dashboard Overview</h2>
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-                  <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+              <div className="animate-fade-in">
+                <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-8 flex items-center gap-3">
+                  <span className="text-3xl">📊</span> Dashboard Overview
+                </h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8 stagger-item">
+                  <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-7 border-l-4 border-green-600 card-hover animate-slide-in-bottom" style={{animationDelay: '0.1s'}}>
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="text-gray-600 dark:text-gray-400 text-sm">Total Users</p>
-                        <p className="text-3xl font-bold text-gray-900 dark:text-white mt-2">{allUsers.length}</p>
+                        <p className="text-gray-600 dark:text-gray-400 text-xs uppercase font-bold tracking-wider">Total Users</p>
+                        <p className="text-4xl font-bold text-green-600 mt-3">{allUsers.length}</p>
                       </div>
-                      <Users className="w-10 h-10 text-blue-500 opacity-20" />
+                      <div className="w-16 h-16 bg-gradient-to-br from-green-100 to-green-200 dark:from-green-900/30 dark:to-green-900/50 rounded-full flex items-center justify-center text-2xl">
+                        👥
+                      </div>
                     </div>
                   </div>
 
-                  <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+                  <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-7 border-l-4 border-emerald-600 card-hover animate-slide-in-bottom" style={{animationDelay: '0.2s'}}>
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="text-gray-600 dark:text-gray-400 text-sm">Counselors</p>
-                        <p className="text-3xl font-bold text-gray-900 dark:text-white mt-2">{counselors.length}</p>
+                        <p className="text-gray-600 dark:text-gray-400 text-xs uppercase font-bold tracking-wider">Counselors</p>
+                        <p className="text-4xl font-bold text-emerald-600 mt-3">{counselors.length}</p>
                       </div>
-                      <UserCheck className="w-10 h-10 text-green-500 opacity-20" />
+                      <div className="w-16 h-16 bg-gradient-to-br from-emerald-100 to-emerald-200 dark:from-emerald-900/30 dark:to-emerald-900/50 rounded-full flex items-center justify-center text-2xl">
+                        💼
+                      </div>
                     </div>
                   </div>
 
-                  <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+                  <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-7 border-l-4 border-teal-600 card-hover animate-slide-in-bottom" style={{animationDelay: '0.3s'}}>
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="text-gray-600 dark:text-gray-400 text-sm">Students</p>
-                        <p className="text-3xl font-bold text-gray-900 dark:text-white mt-2">{students.length}</p>
+                        <p className="text-gray-600 dark:text-gray-400 text-xs uppercase font-bold tracking-wider">Students</p>
+                        <p className="text-4xl font-bold text-teal-600 mt-3">{students.length}</p>
                       </div>
-                      <Users className="w-10 h-10 text-purple-500 opacity-20" />
+                      <div className="w-16 h-16 bg-gradient-to-br from-teal-100 to-teal-200 dark:from-teal-900/30 dark:to-teal-900/50 rounded-full flex items-center justify-center text-2xl">
+                        🎓
+                      </div>
                     </div>
                   </div>
 
-                  <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+                  <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-7 border-l-4 border-red-600 card-hover animate-slide-in-bottom" style={{animationDelay: '0.4s'}}>
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="text-gray-600 dark:text-gray-400 text-sm">Open Reports</p>
-                        <p className="text-3xl font-bold text-gray-900 dark:text-white mt-2">{reports.filter(r => r.status === 'open').length}</p>
+                        <p className="text-gray-600 dark:text-gray-400 text-xs uppercase font-bold tracking-wider">Pending Reports</p>
+                        <p className="text-4xl font-bold text-red-600 mt-3">{reports.filter(r => r.status === 'pending').length}</p>
                       </div>
-                      <AlertCircle className="w-10 h-10 text-red-500 opacity-20" />
+                      <div className="w-16 h-16 bg-gradient-to-br from-red-100 to-red-200 dark:from-red-900/30 dark:to-red-900/50 rounded-full flex items-center justify-center text-2xl">
+                        ⚠️
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -366,20 +434,20 @@ const AdminDashboard = () => {
                     <div className="flex gap-4">
                       <div className="flex-1">
                         <div className="relative">
-                          <Search className="absolute left-3 top-3 w-5 h-5 text-gray-400" />
+                          <Search className="absolute left-3 top-3 w-5 h-5 text-green-400" />
                           <input
                             type="text"
                             placeholder="Search by name or email..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
-                            className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600 dark:bg-gray-700 dark:text-white"
+                            className="w-full pl-10 pr-4 py-2 border-2 border-green-200 dark:border-green-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 dark:focus:ring-green-400 dark:bg-gray-700 dark:text-white transition-all hover:border-green-300"
                           />
                         </div>
                       </div>
                       <select
                         value={filterRole}
                         onChange={(e) => setFilterRole(e.target.value)}
-                        className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600 dark:bg-gray-700 dark:text-white"
+                        className="px-4 py-2 border-2 border-green-200 dark:border-green-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 dark:focus:ring-green-400 dark:bg-gray-700 dark:text-white transition-all hover:border-green-300"
                       >
                         <option value="all">All Roles</option>
                         <option value="student">Students</option>
@@ -390,7 +458,7 @@ const AdminDashboard = () => {
 
                   <div className="overflow-x-auto">
                     <table className="w-full">
-                      <thead className="bg-gray-50 dark:bg-gray-700 border-b border-gray-200 dark:border-gray-600">
+                      <thead className="bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/30 dark:to-emerald-900/30 border-b-2 border-green-200 dark:border-green-700">
                         <tr>
                           <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900 dark:text-white">Name</th>
                           <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900 dark:text-white">Email</th>
@@ -406,7 +474,7 @@ const AdminDashboard = () => {
                             <td className="px-6 py-4 text-sm text-gray-900 dark:text-white font-medium">{u.name}</td>
                             <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-400">{u.email}</td>
                             <td className="px-6 py-4 text-sm">
-                              <span className="px-3 py-1 bg-indigo-100 dark:bg-indigo-900/30 text-indigo-800 dark:text-indigo-300 rounded-full text-xs font-medium capitalize">
+                              <span className="px-3 py-1 bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300 rounded-full text-xs font-medium capitalize">
                                 {u.role}
                               </span>
                             </td>
@@ -417,13 +485,18 @@ const AdminDashboard = () => {
                               </span>
                             </td>
                             <td className="px-6 py-4 text-sm flex gap-2">
-                              <button className="p-1 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded text-blue-600">
+                              <button 
+                                onClick={() => {
+                                  setSelectedUser(u);
+                                  setShowDetailModal(true);
+                                }}
+                                className="p-1 hover:bg-green-100 dark:hover:bg-green-900/30 rounded text-green-600 transition-colors">
                                 <Eye className="w-4 h-4" />
                               </button>
-                              <button className="p-1 hover:bg-yellow-100 dark:hover:bg-yellow-900/30 rounded text-yellow-600">
+                              <button className="p-1 hover:bg-emerald-100 dark:hover:bg-emerald-900/30 rounded text-emerald-600 transition-colors">
                                 <Edit className="w-4 h-4" />
                               </button>
-                              <button className="p-1 hover:bg-red-100 dark:hover:bg-red-900/30 rounded text-red-600">
+                              <button className="p-1 hover:bg-red-100 dark:hover:bg-red-900/30 rounded text-red-600 transition-colors">
                                 <Trash2 className="w-4 h-4" />
                               </button>
                             </td>
@@ -467,7 +540,12 @@ const AdminDashboard = () => {
                           <p className="text-sm text-gray-600 dark:text-gray-400">Students assigned</p>
                         </div>
                         <div className="flex gap-2">
-                          <button className="flex-1 px-3 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm">View</button>
+                          <button 
+                            onClick={() => {
+                              setSelectedUser(c);
+                              setShowDetailModal(true);
+                            }}
+                            className="flex-1 px-3 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm">View</button>
                           <button className="flex-1 px-3 py-2 bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white rounded hover:bg-gray-300 text-sm">Edit</button>
                         </div>
                       </div>
@@ -513,7 +591,12 @@ const AdminDashboard = () => {
                             </span>
                           </td>
                           <td className="px-6 py-4 text-sm flex gap-2">
-                            <button className="p-1 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded text-blue-600">
+                            <button 
+                              onClick={() => {
+                                setSelectedUser(s);
+                                setShowDetailModal(true);
+                              }}
+                              className="p-1 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded text-blue-600">
                               <Eye className="w-4 h-4" />
                             </button>
                             <button className="p-1 hover:bg-yellow-100 dark:hover:bg-yellow-900/30 rounded text-yellow-600">
@@ -580,42 +663,73 @@ const AdminDashboard = () => {
             {/* Reports Tab */}
             {activeTab === 'reports' && (
               <div>
-                <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">System Reports & Feedback</h2>
+                <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">Student Reports & Feedback</h2>
 
-                <div className="space-y-4">
-                  {reports.map(report => (
-                    <div key={report.id} className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-                      <div className="flex items-start justify-between mb-3">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-2">
-                            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{report.title}</h3>
-                            <span className="px-2 py-1 bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-300 rounded text-xs font-medium">
-                              {report.report_type}
-                            </span>
+                {reports && reports.length > 0 ? (
+                  <div className="space-y-4">
+                    {reports.map(report => {
+                      try {
+                        return (
+                          <div key={report?.id} className="bg-white dark:bg-gray-700 rounded-lg shadow p-6">
+                            <div className="flex items-start justify-between mb-3">
+                              <div className="flex-1">
+                                <div className="flex items-center gap-2 mb-2">
+                                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{report.title}</h3>
+                                  <span className="px-2 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-400 rounded text-xs font-medium capitalize">
+                                    {report.report_type}
+                                  </span>
+                                </div>
+                                <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">{report.description}</p>
+                                <div className="flex items-center gap-4 text-sm text-gray-600 dark:text-gray-400">
+                                  <span>From: <strong>{report.user?.name || 'Unknown'}</strong></span>
+                                  <span>Email: {report.user?.email || 'N/A'}</span>
+                                  <span>Date: {report.created_at ? new Date(report.created_at).toLocaleDateString() : 'N/A'}</span>
+                                </div>
+                              </div>
+                              <div className="ml-4">
+                                <span className={`px-3 py-1 rounded-full text-xs font-medium capitalize ${getStatusColor(report.status)}`}>
+                                  {report.status}
+                                </span>
+                              </div>
+                            </div>
+                            <div className="flex gap-2 pt-4 border-t border-gray-200 dark:border-gray-700">
+                              <select 
+                                value={report.status}
+                                onChange={(e) => {
+                                  api.put(`/api/v1/reports/${report.id}/status`, { status: e.target.value })
+                                    .then(() => {
+                                      const updatedReports = reports.map(r => 
+                                        r.id === report.id ? { ...r, status: e.target.value } : r
+                                      );
+                                      setReports(updatedReports);
+                                    })
+                                    .catch(err => {
+                                      console.error('Failed to update status:', err);
+                                      alert('Failed to update report status');
+                                    });
+                                }}
+                                className="px-3 py-2 bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white rounded text-sm border border-gray-300 dark:border-gray-600"
+                              >
+                                <option value="pending">Pending</option>
+                                <option value="reviewed">Reviewed</option>
+                                <option value="resolved">Resolved</option>
+                                <option value="closed">Closed</option>
+                              </select>
+                            </div>
                           </div>
-                          <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">{report.description}</p>
-                          <div className="flex items-center gap-4 text-sm text-gray-600 dark:text-gray-400">
-                            <span>From: <strong>{report.user_name}</strong></span>
-                            <span>Date: {new Date(report.created_at).toLocaleDateString()}</span>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <span className={`px-3 py-1 rounded-full text-xs font-medium capitalize ${getStatusColor(report.status)}`}>
-                            {report.status}
-                          </span>
-                          <span className={`px-3 py-1 rounded-full text-xs font-medium capitalize ${getPriorityColor(report.priority)}`}>
-                            {report.priority} Priority
-                          </span>
-                        </div>
-                      </div>
-                      <div className="flex gap-2 pt-4 border-t border-gray-200 dark:border-gray-700">
-                        <button className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm">View Details</button>
-                        <button className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 text-sm">Mark Resolved</button>
-                        <button className="px-4 py-2 bg-yellow-600 text-white rounded hover:bg-yellow-700 text-sm">Change Priority</button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
+                        );
+                      } catch (err) {
+                        console.error('Error rendering report:', err);
+                        return <div key={report?.id} className="bg-red-100 dark:bg-red-900/30 p-4 rounded text-red-800 dark:text-red-400">Error loading report</div>;
+                      }
+                    })}
+                  </div>
+                ) : (
+                  <div className="bg-white dark:bg-gray-700 rounded-lg shadow p-8 text-center">
+                    <FileText className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                    <p className="text-gray-600 dark:text-gray-400">No reports submitted yet</p>
+                  </div>
+                )}
               </div>
             )}
 
@@ -677,7 +791,89 @@ const AdminDashboard = () => {
           </div>
         </div>
       </div>
-    </div>
+
+      {/* User Detail Modal */}
+      {showDetailModal && selectedUser && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="sticky top-0 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 p-6 flex items-center justify-between">
+              <h2 className="text-2xl font-bold text-gray-900 dark:text-white">User Details</h2>
+              <button
+                onClick={() => {
+                  setShowDetailModal(false);
+                  setSelectedUser(null);
+                }}
+                className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-6">
+              {/* User Info */}
+              <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4">
+                <h3 className="font-semibold text-gray-900 dark:text-white mb-4">Account Information</h3>
+                <div className="space-y-3">
+                  <div>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">Name</p>
+                    <p className="text-lg font-medium text-gray-900 dark:text-white">{selectedUser.name}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">Email</p>
+                    <p className="text-lg font-medium text-gray-900 dark:text-white">{selectedUser.email}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">Role</p>
+                    <p className="text-lg font-medium text-gray-900 dark:text-white capitalize">{selectedUser.role}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">Status</p>
+                    <span className={`inline-block px-3 py-1 rounded-full text-sm font-medium capitalize ${getStatusColor(selectedUser.status)}`}>
+                      {selectedUser.status}
+                    </span>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">Created Date</p>
+                    <p className="text-lg font-medium text-gray-900 dark:text-white">{formatDate(selectedUser.created_at)}</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Additional Info if available */}
+              {selectedUser.phone && (
+                <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4">
+                  <h3 className="font-semibold text-gray-900 dark:text-white mb-3">Contact Information</h3>
+                  <p className="text-gray-900 dark:text-white">{selectedUser.phone}</p>
+                </div>
+              )}
+
+              {selectedUser.address && (
+                <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4">
+                  <h3 className="font-semibold text-gray-900 dark:text-white mb-3">Address</h3>
+                  <p className="text-gray-900 dark:text-white">{selectedUser.address}</p>
+                </div>
+              )}
+            </div>
+
+            <div className="bg-gray-50 dark:bg-gray-700/50 border-t border-gray-200 dark:border-gray-700 p-6 flex gap-3">
+              <button
+                onClick={() => {
+                  setShowDetailModal(false);
+                  setSelectedUser(null);
+                }}
+                className="flex-1 px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 font-medium"
+              >
+                Close
+              </button>
+              <button className="flex-1 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 font-medium">
+                Edit User
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      </div>
+    </>
   );
 };
 

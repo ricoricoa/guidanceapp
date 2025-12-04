@@ -27,7 +27,7 @@ class DatabaseSeeder extends Seeder
             'name' => 'John Counselor',
             'email' => 'counselor@example.com',
             'password' => bcrypt('password'),
-            'role' => 'guidance',
+            'role' => 'counselor',
         ]);
 
         // Create test student user

@@ -1,7 +1,7 @@
 import React, { useEffect } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 import "./App.css";
-import Navbar from "./components/Navbar";
+import "./styles/dashboard-animations.css";
 import CarForm from "./pages/CarForm";
 import LandingPage from "./pages/LandingPage";
 import Login from "./pages/Login";
@@ -20,10 +20,16 @@ const App = () => {
     // Initialize auth from stored token
     initializeAuth();
     api.get('/sanctum/csrf-cookie').catch(() => {});
+    
+    // Ensure body gets dark class if needed
+    const isDark = localStorage.getItem('theme') === 'dark' || 
+                   (!localStorage.getItem('theme') && window.matchMedia('(prefers-color-scheme: dark)').matches);
+    if (isDark) {
+      document.body.classList.add('dark');
+    }
   }, []);
   return (
     <ThemeProvider>
-      <Navbar />
       <main className="min-h-screen bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-gray-100 pt-20 pb-16 md:pt-0 md:pb-0">
         <Routes>
           <Route path="/" element={<LandingPage />} />

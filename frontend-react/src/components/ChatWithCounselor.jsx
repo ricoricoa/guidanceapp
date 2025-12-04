@@ -29,7 +29,7 @@ export const ChatWithCounselor = () => {
     return () => { mounted = false; };
   }, []);
 
-  // Fetch counselors with auto-refresh
+  // Fetch counselors - only once on mount
   useEffect(() => {
     let mounted = true;
     const fetchCounselors = async () => {
@@ -77,17 +77,19 @@ export const ChatWithCounselor = () => {
         ];
         console.log('Using mock counselors:', mockCounselors);
         setCounselors(mockCounselors);
+      }
+      
+      // IMPORTANT: Always set loading to false at the end, regardless of path taken
+      if (mounted) {
         setLoading(false);
       }
     };
-    fetchCounselors();
     
-    // Set up auto-refresh every 5 seconds
-    const interval = setInterval(fetchCounselors, 5000);
+    // Fetch only once on component mount
+    fetchCounselors();
     
     return () => { 
       mounted = false;
-      clearInterval(interval);
     };
   }, []);
 

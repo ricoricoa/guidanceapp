@@ -1,10 +1,17 @@
 import React, { useState } from "react";
 import { Star, Info, Mail, Rocket, Leaf } from "lucide-react";
-import { NavLink } from "react-router-dom";
+import { NavLink, useLocation } from "react-router-dom";
 import AuthChoiceModal from "./AuthChoiceModal";
 
 export const Navbar = () => {
   const [modalOpen, setModalOpen] = useState(false);
+  const location = useLocation();
+
+  // Hide navbar on dashboard pages
+  const isDashboardPage = location.pathname.includes('/dashboard');
+  if (isDashboardPage) {
+    return null;
+  }
 
   // Floating leaf decorator component
   const FloatingLeaf = ({ delay, position }) => (

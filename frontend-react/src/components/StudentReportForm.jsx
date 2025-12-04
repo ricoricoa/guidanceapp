@@ -10,6 +10,7 @@ const StudentReportForm = ({ onClose, onReportSent }) => {
   });
   const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [error, setError] = useState('');
 
   const reportTypes = [
     { id: 'bug', label: 'Bug Report', icon: AlertCircle, description: 'Report a system issue' },
@@ -24,18 +25,22 @@ const StudentReportForm = ({ onClose, onReportSent }) => {
       ...prev,
       [name]: value
     }));
+    setError('');
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!formData.title.trim() || !formData.description.trim()) {
-      alert('Please fill in all fields');
+      setError('Please fill in all fields');
       return;
     }
 
     setLoading(true);
+    setError('');
     try {
-      await api.post('/api/v1/reports', formData);
+      console.log('Submitting report:', formData);
+      const response = await api.post('/api/v1/reports', formData);
+      console.log('Report submitted successfully:', response.data);
       setSubmitted(true);
       setTimeout(() => {
         if (onReportSent) onReportSent();
@@ -43,7 +48,13 @@ const StudentReportForm = ({ onClose, onReportSent }) => {
       }, 2000);
     } catch (err) {
       console.error('Error submitting report:', err);
-      alert('Failed to submit report. Please try again.');
+      const errorMessage = err.response?.data?.message || 'Failed to submit report. Please try again.';
+      console.error('Error details:', {
+        status: err.response?.status,
+        data: err.response?.data,
+        message: errorMessage
+      });
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -75,6 +86,13 @@ const StudentReportForm = ({ onClose, onReportSent }) => {
             <X className="w-5 h-5" />
           </button>
         </div>
+
+        {error && (
+          <div className="mb-4 p-3 bg-red-100 dark:bg-red-900/30 border border-red-400 dark:border-red-600 text-red-800 dark:text-red-300 rounded-lg flex items-start gap-2">
+            <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
+            <p className="text-sm">{error}</p>
+          </div>
+        )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* Report Type Selection */}

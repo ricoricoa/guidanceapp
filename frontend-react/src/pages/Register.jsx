@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { register } from "../api/Auth";
-import { User, Mail, Lock, CheckCircle, AlertCircle, Loader, Eye, EyeOff, Leaf } from "lucide-react";
+import { User, Mail, Lock, CheckCircle, AlertCircle, Loader, Eye, EyeOff } from "lucide-react";
 
 export default function Register() {
   const navigate = useNavigate();
@@ -78,20 +78,6 @@ export default function Register() {
     return "Strong";
   };
 
-  // Floating decorative elements
-  const FloatingLeaf = ({ delay, left, size }) => (
-    <div
-      className="absolute animate-float text-green-300 dark:text-green-600 opacity-30"
-      style={{
-        animationDelay: `${delay}s`,
-        left: `${left}%`,
-        top: "-10px"
-      }}
-    >
-      <Leaf size={size} />
-    </div>
-  );
-
   return (
     <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-green-50 via-emerald-50 to-teal-50 dark:from-gray-900 dark:via-green-900 dark:to-teal-900 px-4 relative overflow-hidden">
       
@@ -108,6 +94,12 @@ export default function Register() {
           from { opacity: 0; transform: translateY(20px); }
           to { opacity: 1; transform: translateY(0); }
         }
+        @keyframes fly-bird {
+          0% { transform: translateX(-100px) translateY(0px); opacity: 0; }
+          10% { opacity: 1; }
+          90% { opacity: 1; }
+          100% { transform: translateX(calc(100vw + 100px)) translateY(-30px); opacity: 0; }
+        }
         .animate-float {
           animation: float 4s ease-in-out infinite;
         }
@@ -117,14 +109,22 @@ export default function Register() {
         .animate-slide-up {
           animation: slide-up 0.6s ease-out;
         }
+        .animate-fly-bird {
+          animation: fly-bird linear infinite;
+        }
       `}</style>
 
-      {/* Decorative floating leaves */}
+      {/* Decorative animated elements */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <FloatingLeaf delay={0} left={5} size={32} />
-        <FloatingLeaf delay={2} left={15} size={28} />
-        <FloatingLeaf delay={4} left={85} size={30} />
-        <FloatingLeaf delay={1} left={90} size={26} />
+        {/* Floating Leaves */}
+        <div className="absolute top-10 left-5 text-4xl opacity-20 animate-float" style={{animationDelay: '0s'}}>🍃</div>
+        <div className="absolute top-20 left-20 text-3xl opacity-15 animate-float" style={{animationDelay: '2s'}}>🌿</div>
+        <div className="absolute top-32 right-10 text-3xl opacity-20 animate-float" style={{animationDelay: '4s'}}>🍂</div>
+        <div className="absolute top-16 right-32 text-2xl opacity-15 animate-float" style={{animationDelay: '1s'}}>🍃</div>
+        
+        {/* Flying Birds */}
+        <div className="absolute top-20 left-0 text-2xl" style={{animation: 'fly-bird 8s linear infinite'}}>🕊️</div>
+        <div className="absolute top-40 left-0 text-xl" style={{animation: 'fly-bird 10s linear infinite 2s'}}>🦅</div>
       </div>
 
       <div className="w-full max-w-md relative z-10 animate-slide-up">
@@ -132,13 +132,15 @@ export default function Register() {
           {/* Header */}
           <div className="bg-gradient-to-r from-green-600 via-emerald-600 to-teal-600 dark:from-green-700 dark:via-emerald-700 dark:to-teal-700 px-6 py-10">
             <div className="text-center mb-3">
-              <div className="inline-flex items-center justify-center w-16 h-16 bg-white dark:bg-gray-800 rounded-full mb-3 pulse-glow">
-                <span className="text-3xl">🌿</span>
+              <div className="inline-flex items-center justify-center w-20 h-20 bg-white dark:bg-gray-800 rounded-full mb-3 pulse-glow transform hover:scale-110 transition-transform duration-300 shadow-lg">
+                <span className="text-5xl">🌿</span>
               </div>
             </div>
             <h1 className="text-3xl font-bold text-white text-center">Create Account</h1>
-            <p className="text-green-100 text-center text-sm mt-1 font-semibold">MSU Bongabong Guidance Office</p>
-            <p className="text-green-50 text-center text-xs mt-2">Join our student support system</p>
+            <p className="text-green-100 text-center text-sm mt-1 font-semibold">MinSU Bongabong Guidance Office</p>
+            <p className="text-green-50 text-center text-xs mt-2 flex items-center justify-center gap-1">
+              <span>🕊️</span> Join our student support system <span>🦅</span>
+            </p>
           </div>
 
           {/* Form */}
@@ -156,7 +158,7 @@ export default function Register() {
               <label className="block text-sm font-semibold text-gray-700 dark:text-gray-200 mb-2">
                 👤 Full Name
               </label>
-              <div className="relative">
+              <div className="relative group">
                 <User className="absolute left-3 top-3.5 text-green-500 w-5 h-5" />
                 <input
                   type="text"
@@ -167,7 +169,7 @@ export default function Register() {
                   className={`w-full pl-10 pr-4 py-3 border-2 rounded-lg focus:outline-none focus:ring-2 dark:bg-gray-700 dark:text-white transition-all duration-300 ${
                     errors.name
                       ? "border-red-500 focus:ring-red-500"
-                      : "border-green-200 dark:border-green-700 focus:ring-green-500 dark:focus:ring-green-400 hover:border-green-300"
+                      : "border-green-200 dark:border-green-700 focus:ring-green-500 dark:focus:ring-green-400 hover:border-green-300 group-hover:shadow-md"
                   }`}
                   required
                 />
@@ -180,7 +182,7 @@ export default function Register() {
               <label className="block text-sm font-semibold text-gray-700 dark:text-gray-200 mb-2">
                 📧 Email Address
               </label>
-              <div className="relative">
+              <div className="relative group">
                 <Mail className="absolute left-3 top-3.5 text-green-500 w-5 h-5" />
                 <input
                   type="email"
@@ -191,7 +193,7 @@ export default function Register() {
                   className={`w-full pl-10 pr-4 py-3 border-2 rounded-lg focus:outline-none focus:ring-2 dark:bg-gray-700 dark:text-white transition-all duration-300 ${
                     errors.email
                       ? "border-red-500 focus:ring-red-500"
-                      : "border-green-200 dark:border-green-700 focus:ring-green-500 dark:focus:ring-green-400 hover:border-green-300"
+                      : "border-green-200 dark:border-green-700 focus:ring-green-500 dark:focus:ring-green-400 hover:border-green-300 group-hover:shadow-md"
                   }`}
                   required
                 />
@@ -204,7 +206,7 @@ export default function Register() {
               <label className="block text-sm font-semibold text-gray-700 dark:text-gray-200 mb-2">
                 🔐 Password
               </label>
-              <div className="relative">
+              <div className="relative group">
                 <Lock className="absolute left-3 top-3.5 text-green-500 w-5 h-5" />
                 <input
                   type={showPassword ? "text" : "password"}
@@ -215,14 +217,14 @@ export default function Register() {
                   className={`w-full pl-10 pr-10 py-3 border-2 rounded-lg focus:outline-none focus:ring-2 dark:bg-gray-700 dark:text-white transition-all duration-300 ${
                     errors.password
                       ? "border-red-500 focus:ring-red-500"
-                      : "border-green-200 dark:border-green-700 focus:ring-green-500 dark:focus:ring-green-400 hover:border-green-300"
+                      : "border-green-200 dark:border-green-700 focus:ring-green-500 dark:focus:ring-green-400 hover:border-green-300 group-hover:shadow-md"
                   }`}
                   required
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-3.5 text-green-500 hover:text-green-600 dark:hover:text-green-400 transition-colors"
+                  className="absolute right-3 top-3.5 text-green-500 hover:text-green-600 dark:hover:text-green-400 transition-colors transform hover:scale-110"
                 >
                   {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                 </button>
@@ -250,7 +252,7 @@ export default function Register() {
               <label className="block text-sm font-semibold text-gray-700 dark:text-gray-200 mb-2">
                 🔐 Confirm Password
               </label>
-              <div className="relative">
+              <div className="relative group">
                 <Lock className="absolute left-3 top-3.5 text-green-500 w-5 h-5" />
                 <input
                   type={showConfirmPassword ? "text" : "password"}
@@ -261,14 +263,14 @@ export default function Register() {
                   className={`w-full pl-10 pr-10 py-3 border-2 rounded-lg focus:outline-none focus:ring-2 dark:bg-gray-700 dark:text-white transition-all duration-300 ${
                     errors.password_confirmation
                       ? "border-red-500 focus:ring-red-500"
-                      : "border-green-200 dark:border-green-700 focus:ring-green-500 dark:focus:ring-green-400 hover:border-green-300"
+                      : "border-green-200 dark:border-green-700 focus:ring-green-500 dark:focus:ring-green-400 hover:border-green-300 group-hover:shadow-md"
                   }`}
                   required
                 />
                 <button
                   type="button"
                   onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                  className="absolute right-3 top-3.5 text-green-500 hover:text-green-600 dark:hover:text-green-400 transition-colors"
+                  className="absolute right-3 top-3.5 text-green-500 hover:text-green-600 dark:hover:text-green-400 transition-colors transform hover:scale-110"
                 >
                   {showConfirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                 </button>
@@ -282,10 +284,10 @@ export default function Register() {
                 👥 I am a
               </label>
               <div className="grid grid-cols-2 gap-3">
-                <label className={`p-3 border-2 rounded-lg cursor-pointer transition-all duration-300 ${
+                <label className={`p-3 border-2 rounded-lg cursor-pointer transition-all duration-300 transform hover:scale-105 ${
                   formData.role === "student"
                     ? "border-green-500 bg-green-50 dark:bg-green-900/20 shadow-md"
-                    : "border-green-200 dark:border-green-700 hover:border-green-300"
+                    : "border-green-200 dark:border-green-700 hover:border-green-300 hover:shadow-md"
                 }`}>
                   <input
                     type="radio"
@@ -300,10 +302,10 @@ export default function Register() {
                   </div>
                 </label>
 
-                <label className={`p-3 border-2 rounded-lg cursor-pointer transition-all duration-300 ${
+                <label className={`p-3 border-2 rounded-lg cursor-pointer transition-all duration-300 transform hover:scale-105 ${
                   formData.role === "guidance"
                     ? "border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20 shadow-md"
-                    : "border-green-200 dark:border-green-700 hover:border-green-300"
+                    : "border-green-200 dark:border-green-700 hover:border-green-300 hover:shadow-md"
                 }`}>
                   <input
                     type="radio"
@@ -351,7 +353,7 @@ export default function Register() {
             {/* Login Link */}
             <Link
               to="/login"
-              className="w-full py-3 px-4 border-2 border-green-300 dark:border-green-700 text-green-700 dark:text-green-300 font-bold rounded-lg hover:bg-green-50 dark:hover:bg-green-900/20 transition-all duration-300 text-center block hover:border-green-500 dark:hover:border-green-500 hover:scale-105 transform"
+              className="w-full py-3 px-4 border-2 border-green-300 dark:border-green-700 text-green-700 dark:text-green-300 font-bold rounded-lg hover:bg-green-50 dark:hover:bg-green-900/20 transition-all duration-300 text-center block hover:border-green-500 dark:hover:border-green-500 hover:scale-105 transform hover:shadow-md"
             >
               Sign In 🌿
             </Link>

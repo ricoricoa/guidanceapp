@@ -1,8 +1,12 @@
 import React, { useEffect, useState, useRef } from 'react';
 import api from '../api/axios';
-import { Users, Calendar, X, Clock, FileText, MessageSquare, Send, Moon, Sun, User, LogOut } from 'lucide-react';
+import { Users, Calendar, X, Clock, FileText, MessageSquare, Send, Moon, Sun, User, LogOut, Plus, Megaphone, Trash2, Edit2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import ProfileSettings from '../components/ProfileSettings';
+import CounselorAnnouncementForm from '../components/CounselorAnnouncementForm';
+import AnnouncementComments from '../components/AnnouncementComments';
+import EmojiReactions from '../components/EmojiReactions';
+import DashboardNavbar from '../components/DashboardNavbar';
 import { useTheme } from '../context/ThemeContext';
 
 const CounselorDashboard = () => {
@@ -27,6 +31,15 @@ const CounselorDashboard = () => {
   const [chatMessages, setChatMessages] = useState([]);
   const [messageInput, setMessageInput] = useState('');
   const messagesEndRef = useRef(null);
+  
+  // Announcement states
+  const [announcements, setAnnouncements] = useState([]);
+  const [showAnnouncementForm, setShowAnnouncementForm] = useState(false);
+  const [editingAnnouncement, setEditingAnnouncement] = useState(null);
+  const [announcementLoading, setAnnouncementLoading] = useState(false);
+  const [announcementError, setAnnouncementError] = useState('');
+  const [expandedAnnouncement, setExpandedAnnouncement] = useState(null);
+  const [announcementReactions, setAnnouncementReactions] = useState({});
   
   // Approval workflow states
   const [selectedRequest, setSelectedRequest] = useState(null);
@@ -141,6 +154,49 @@ const CounselorDashboard = () => {
     };
     
     fetchAppointments();
+    return () => (mounted = false);
+  }, []);
+
+  // Fetch announcements
+  useEffect(() => {
+    let mounted = true;
+    const fetchAnnouncements = async () => {
+      setAnnouncementLoading(true);
+      setAnnouncementError('');
+      try {
+        const res = await api.get('/api/v1/announcements/counselor/all');
+        console.log('Announcements API Response:', res.data);
+        
+        if (mounted && res.data) {
+          // Handle paginated response - Laravel paginate() returns nested data structure
+          let announcementsData = [];
+          
+          if (res.data?.data?.data) {
+            // Paginated response with pagination metadata
+            announcementsData = res.data.data.data;
+          } else if (Array.isArray(res.data?.data)) {
+            // Direct array response
+            announcementsData = res.data.data;
+          } else if (Array.isArray(res.data)) {
+            // Response is already an array
+            announcementsData = res.data;
+          }
+          
+          console.log('Extracted announcements:', announcementsData);
+          setAnnouncements(announcementsData);
+        }
+      } catch (err) {
+        if (mounted) {
+          console.error('Error fetching announcements:', err.response?.data || err.message);
+          const errorMsg = err.response?.data?.message || err.message || 'Failed to load announcements';
+          setAnnouncementError(errorMsg);
+        }
+      } finally {
+        if (mounted) setAnnouncementLoading(false);
+      }
+    };
+
+    fetchAnnouncements();
     return () => (mounted = false);
   }, []);
 
@@ -285,6 +341,51 @@ const CounselorDashboard = () => {
     setShowNoteModal(false);
     setSessionNote('');
     setTimeout(() => setMessage(''), 3000);
+  };
+
+  const handleDeleteAnnouncement = async (id) => {
+    if (!window.confirm('Are you sure you want to delete this announcement?')) {
+      return;
+    }
+
+    try {
+      await api.delete(`/api/v1/announcements/${id}`);
+      setAnnouncements(announcements.filter(a => a.id !== id));
+      setMessage('Announcement deleted successfully!');
+      setTimeout(() => setMessage(''), 3000);
+    } catch (err) {
+      setMessage('Failed to delete announcement');
+      console.error('Error deleting announcement:', err);
+    }
+  };
+
+  const handleAnnouncementCreated = () => {
+    // Refresh the announcements list
+    const fetchAnnouncements = async () => {
+      try {
+        const res = await api.get('/api/v1/announcements/counselor/all');
+        console.log('Refresh Announcements API Response:', res.data);
+        
+        if (res.data) {
+          // Handle paginated response
+          let announcementsData = [];
+          
+          if (res.data?.data?.data) {
+            announcementsData = res.data.data.data;
+          } else if (Array.isArray(res.data?.data)) {
+            announcementsData = res.data.data;
+          } else if (Array.isArray(res.data)) {
+            announcementsData = res.data;
+          }
+          
+          console.log('Extracted announcements:', announcementsData);
+          setAnnouncements(announcementsData);
+        }
+      } catch (err) {
+        console.error('Error fetching announcements:', err);
+      }
+    };
+    fetchAnnouncements();
   };
 
   // Approval handlers for requests and appointments
@@ -466,19 +567,21 @@ const CounselorDashboard = () => {
     : studentRequests.filter(r => r.status === requestFilter);
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex pt-16">
-      {/* Sidebar */}
-      <div className="w-64 bg-white dark:bg-gray-800 shadow-lg fixed left-0 top-16 h-[calc(100vh-4rem)] overflow-y-auto">
+    <>
+      <DashboardNavbar user={user} userRole="counselor" activeTab={activeTab} onTabChange={setActiveTab} />
+      <div className="min-h-screen bg-gradient-to-br from-green-50 via-emerald-50 to-teal-50 dark:from-gray-950 dark:via-green-950 dark:to-teal-950 flex animate-fade-in">
+      {/* Sidebar with Enhanced Design */}
+      <div className="w-64 bg-gradient-to-b from-green-50 to-emerald-50 dark:from-green-900/30 dark:to-emerald-900/40 shadow-2xl fixed left-0 top-16 h-[calc(100vh-4rem)] overflow-y-auto border-r-2 border-green-300 dark:border-green-800">
         <div className="p-6">
-          <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-8">Menu</h2>
+          <h2 className="text-xl font-bold bg-gradient-to-r from-green-600 via-emerald-600 to-teal-600 bg-clip-text text-transparent mb-8">🌿 Counselor Menu</h2>
           
           <nav className="space-y-2">
             <button
               onClick={() => setActiveTab('dashboard')}
-              className={`w-full text-left px-4 py-3 rounded-lg font-medium transition ${
+              className={`w-full text-left px-4 py-3 rounded-lg font-medium transition transform duration-300 ${
                 activeTab === 'dashboard'
-                  ? 'bg-indigo-600 text-white'
-                  : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+                  ? 'bg-gradient-to-r from-green-500 via-emerald-500 to-teal-500 text-white shadow-lg scale-105 card-hover'
+                  : 'text-gray-700 dark:text-gray-300 hover:bg-green-100 dark:hover:bg-green-800/30'
               }`}
             >
               📊 Dashboard
@@ -486,15 +589,15 @@ const CounselorDashboard = () => {
             
             <button
               onClick={() => setActiveTab('appointments')}
-              className={`w-full text-left px-4 py-3 rounded-lg font-medium transition flex items-center gap-2 ${
+              className={`w-full text-left px-4 py-3 rounded-lg font-medium transition transform duration-300 flex items-center gap-2 ${
                 activeTab === 'appointments'
-                  ? 'bg-indigo-600 text-white'
-                  : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+                  ? 'bg-gradient-to-r from-emerald-500 to-green-500 text-white shadow-lg scale-105 card-hover'
+                  : 'text-gray-700 dark:text-gray-300 hover:bg-emerald-100 dark:hover:bg-emerald-800/30'
               }`}
             >
               📅 Appointments
               {appointments.filter(a => a.status === 'pending').length > 0 && (
-                <span className="ml-auto px-2 py-1 bg-red-500 text-white text-xs rounded-full">
+                <span className="ml-auto px-2 py-1 bg-red-500 text-white text-xs rounded-full animate-pulse-soft">
                   {appointments.filter(a => a.status === 'pending').length}
                 </span>
               )}
@@ -504,8 +607,8 @@ const CounselorDashboard = () => {
               onClick={() => setActiveTab('requests')}
               className={`w-full text-left px-4 py-3 rounded-lg font-medium transition flex items-center gap-2 ${
                 activeTab === 'requests'
-                  ? 'bg-indigo-600 text-white'
-                  : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+                  ? 'bg-gradient-to-r from-green-600 to-emerald-600 text-white shadow-lg'
+                  : 'text-gray-700 dark:text-gray-300 hover:bg-green-100 dark:hover:bg-green-800/30'
               }`}
             >
               📄 Requests
@@ -520,20 +623,32 @@ const CounselorDashboard = () => {
               onClick={() => setActiveTab('messages')}
               className={`w-full text-left px-4 py-3 rounded-lg font-medium transition ${
                 activeTab === 'messages'
-                  ? 'bg-indigo-600 text-white'
-                  : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+                  ? 'bg-gradient-to-r from-green-600 to-emerald-600 text-white shadow-lg'
+                  : 'text-gray-700 dark:text-gray-300 hover:bg-green-100 dark:hover:bg-green-800/30'
               }`}
             >
               💬 Messages
+            </button>
+            
+            <button
+              onClick={() => setActiveTab('announcements')}
+              className={`w-full text-left px-4 py-3 rounded-lg font-medium transition flex items-center gap-2 ${
+                activeTab === 'announcements'
+                  ? 'bg-gradient-to-r from-green-600 to-emerald-600 text-white shadow-lg'
+                  : 'text-gray-700 dark:text-gray-300 hover:bg-green-100 dark:hover:bg-green-800/30'
+              }`}
+            >
+              <Megaphone className="w-4 h-4" />
+              Announcements
             </button>
           </nav>
         </div>
 
         {/* Profile Section in Sidebar - Enhanced */}
-        <div className="p-6 border-t border-gray-200 dark:border-gray-700 mt-8 space-y-4 bg-gradient-to-br from-indigo-50 to-blue-50 dark:from-indigo-900/20 dark:to-blue-900/20 rounded-xl mx-2 mb-2">
+        <div className="p-6 border-t-2 border-green-300 dark:border-green-800 mt-8 space-y-4 bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-900/30 dark:to-emerald-900/40 rounded-xl mx-2 mb-2">
           <div className="mb-4">
             <div className="flex items-center gap-3 mb-3">
-              <div className="w-10 h-10 bg-gradient-to-br from-indigo-600 to-blue-600 rounded-full flex items-center justify-center text-white font-bold text-lg">
+              <div className="w-10 h-10 bg-gradient-to-br from-green-500 to-emerald-600 rounded-full flex items-center justify-center text-white font-bold text-lg">
                 {user?.name?.charAt(0)?.toUpperCase() || 'C'}
               </div>
               <div className="flex-1 min-w-0">
@@ -545,7 +660,7 @@ const CounselorDashboard = () => {
           </div>
           <button
             onClick={() => setEditing(!editing)}
-            className="w-full px-4 py-2.5 bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-700 hover:to-indigo-800 text-white rounded-lg text-sm font-medium transition transform hover:scale-105 flex items-center justify-center gap-2"
+            className="w-full px-4 py-2.5 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white rounded-lg text-sm font-medium transition transform hover:scale-105 flex items-center justify-center gap-2"
           >
             <User className="w-4 h-4" />
             Edit Profile
@@ -563,309 +678,202 @@ const CounselorDashboard = () => {
       {/* Main Content */}
       <div className="flex-1 ml-64 pb-8">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-8">
-          <div className="mb-8 flex items-center justify-between">
+          <div className="mb-8 flex items-center justify-between animate-slide-in-top">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Welcome, {user?.name}!</h1>
-              <p className="text-gray-600 dark:text-gray-400 mt-1">Counselor Dashboard</p>
+              <h1 className="text-4xl font-bold bg-gradient-to-r from-green-600 via-emerald-600 to-teal-600 bg-clip-text text-transparent">Welcome, {user?.name}! 🌿</h1>
+              <p className="text-gray-600 dark:text-gray-400 mt-2">Manage appointments, students, and announcements</p>
             </div>
             <button
               onClick={toggleTheme}
-              className="flex items-center gap-2 px-4 py-2 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-900 dark:text-white rounded-lg transition"
+              className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-amber-400 to-orange-500 hover:from-amber-500 hover:to-orange-600 text-white rounded-lg transition transform hover:scale-110 shadow-lg"
               title={`Switch to ${isDark ? 'light' : 'dark'} mode`}
             >
               {isDark ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
             </button>
           </div>
 
-        {/* Navigation Tabs - Hidden on desktop, shown on mobile */}
-        <div className="mb-6 border-b border-gray-200 dark:border-gray-700 lg:hidden">
-          <div className="flex gap-6 overflow-x-auto">
-            <button
-              onClick={() => setActiveTab('dashboard')}
-              className={`px-4 py-3 font-medium transition border-b-2 whitespace-nowrap ${
-                activeTab === 'dashboard'
-                  ? 'border-indigo-600 text-indigo-600'
-                  : 'border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900'
-              }`}
-            >
-              Dashboard
-            </button>
-            <button
-              onClick={() => setActiveTab('requests')}
-              className={`px-4 py-3 font-medium transition border-b-2 flex items-center gap-2 whitespace-nowrap ${
-                activeTab === 'requests'
-                  ? 'border-indigo-600 text-indigo-600'
-                  : 'border-transparent text-gray-600 dark:text-gray-400'
-              }`}
-            >
-              <FileText className="w-4 h-4" />
-              Requests
-              {studentRequests.filter(r => r.status === 'pending').length > 0 && (
-                <span className="ml-2 px-2 py-0.5 bg-red-600 text-white text-xs rounded-full">
-                  {studentRequests.filter(r => r.status === 'pending').length}
-                </span>
-              )}
-            </button>
-            <button
-              onClick={() => setActiveTab('appointments')}
-              className={`px-4 py-3 font-medium transition border-b-2 flex items-center gap-2 whitespace-nowrap ${
-                activeTab === 'appointments'
-                  ? 'border-indigo-600 text-indigo-600'
-                  : 'border-transparent text-gray-600 dark:text-gray-400'
-              }`}
-            >
-              <Calendar className="w-4 h-4" />
-              Appointments
-              {appointments.filter(a => a.status === 'pending').length > 0 && (
-                <span className="ml-2 px-2 py-0.5 bg-yellow-600 text-white text-xs rounded-full">
-                  {appointments.filter(a => a.status === 'pending').length}
-                </span>
-              )}
-            </button>
-            <button
-              onClick={() => setActiveTab('messages')}
-              className={`px-4 py-3 font-medium transition border-b-2 flex items-center gap-2 whitespace-nowrap ${
-                activeTab === 'messages'
-                  ? 'border-indigo-600 text-indigo-600'
-                  : 'border-transparent text-gray-600 dark:text-gray-400'
-              }`}
-            >
-              <MessageSquare className="w-4 h-4" />
-              Messages
-            </button>
-            <button
-              onClick={() => setActiveTab('profile')}
-              className={`px-4 py-3 font-medium transition border-b-2 flex items-center gap-2 whitespace-nowrap ${
-                activeTab === 'profile'
-                  ? 'border-indigo-600 text-indigo-600'
-                  : 'border-transparent text-gray-600 dark:text-gray-400'
-              }`}
-            >
-              <User className="w-4 h-4" />
-              Profile
-            </button>
-          </div>
-        </div>
-
         {message && (
-          <div className="mb-6 p-4 bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-800 rounded-lg text-green-800 dark:text-green-200 flex justify-between">
-            <span>{message}</span>
-            <button onClick={() => setMessage('')} className="text-green-600">
+          <div className="mb-6 p-4 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/30 dark:to-emerald-900/30 border border-green-200 dark:border-green-800 rounded-lg text-green-800 dark:text-green-200 flex justify-between animate-slide-in-top shadow-lg">
+            <span className="font-medium">✅ {message}</span>
+            <button onClick={() => setMessage('')} className="text-green-600 hover:text-green-700">
               <X className="w-5 h-5" />
             </button>
           </div>
         )}
 
-        {/* Dashboard Tab */}
+        {/* Dashboard Tab - Enhanced */}
         {activeTab === 'dashboard' && (
-          <div className="space-y-8">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-                <p className="text-gray-600 dark:text-gray-400 text-sm">Total Appointments</p>
-                <p className="text-3xl font-bold text-gray-900 dark:text-white mt-1">{appointments.length}</p>
-              </div>
-              <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-                <p className="text-gray-600 dark:text-gray-400 text-sm">Pending Requests</p>
-                <p className="text-3xl font-bold text-gray-900 dark:text-white mt-1">{studentRequests.filter(r => r.status === 'pending').length}</p>
-              </div>
-            </div>
-
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow">
-              <div className="p-6 border-b border-gray-200 dark:border-gray-700">
-                <h2 className="text-xl font-bold text-gray-900 dark:text-white">Upcoming Appointments</h2>
-              </div>
-              <div className="p-6 space-y-3">
-                {appointments.length > 0 ? (
-                  appointments.slice(0, 5).map(apt => (
-                    <div key={apt.id} className="flex justify-between p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition">
-                      <div>
-                        <p className="font-semibold text-gray-900 dark:text-white">{apt.student_name || 'Student'}</p>
-                        <p className="text-sm text-gray-600 dark:text-gray-400">{apt.topic}</p>
-                      </div>
-                      <span className={`px-3 py-1 rounded text-xs font-semibold whitespace-nowrap ml-4 ${apt.status === 'pending' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300' : 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'}`}>
-                        {apt.status}
-                      </span>
-                    </div>
-                  ))
-                ) : (
-                  <p className="text-center text-gray-600 dark:text-gray-400 py-8">No appointments yet</p>
-                )}
-              </div>
-            </div>
-
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow">
-              <div className="p-6 border-b border-gray-200 dark:border-gray-700">
-                <h2 className="text-xl font-bold text-gray-900 dark:text-white">Students</h2>
-                <p className="text-sm text-gray-500 mt-1">{students.length} student(s)</p>
-              </div>
-              <div className="divide-y">
-                {students.length > 0 ? (
-                  students.map(student => (
-                    <div key={student.id} className="p-6 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition">
-                      <div className="flex justify-between items-start">
-                        <div>
-                          <p className="font-semibold text-gray-900 dark:text-white">{student.name}</p>
-                          <p className="text-sm text-gray-600 dark:text-gray-400">{student.email}</p>
-                          <p className="text-xs text-gray-500 mt-2">Sessions: {student.sessions}</p>
-                        </div>
-                        <span className="px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300">
-                          {student.status}
-                        </span>
-                      </div>
-                    </div>
-                  ))
-                ) : (
-                  <p className="text-center text-gray-600 dark:text-gray-400 py-8">No students available</p>
-                )}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Requests Tab */}
-        {activeTab === 'requests' && (
-          <div className="space-y-6">
-            <div className="flex gap-2">
-              {['all', 'pending', 'approved', 'rejected'].map(status => (
-                <button
-                  key={status}
-                  onClick={() => setRequestFilter(status)}
-                  className={`px-4 py-2 rounded-lg font-medium ${
-                    requestFilter === status
-                      ? 'bg-indigo-600 text-white'
-                      : 'bg-white dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-200'
-                  }`}
-                >
-                  {status.charAt(0).toUpperCase() + status.slice(1)}
-                </button>
-              ))}
-            </div>
-
-            <div className="space-y-4">
-              {filteredRequests.length > 0 ? (
-                filteredRequests.map(request => (
-                  <div key={request.id} className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-                    <div className="flex justify-between items-start mb-4">
-                      <div>
-                        <h3 className="text-lg font-semibold">{request.student_name}</h3>
-                        <p className="text-sm text-gray-600">{request.student_email}</p>
-                        <p className="text-sm mt-2"><strong>Type:</strong> {request.request_type}</p>
-                        <p className="text-sm"><strong>Purpose:</strong> {request.purpose}</p>
-                      </div>
-                      <span className={`px-3 py-1 rounded text-xs font-medium ${
-                        request.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
-                        request.status === 'approved' ? 'bg-green-100 text-green-800' :
-                        'bg-red-100 text-red-800'
-                      }`}>
-                        {request.status}
-                      </span>
-                    </div>
-
-                    {request.status === 'pending' && (
-                      <div className="flex gap-2 pt-4 border-t">
-                        <button
-                          onClick={() => {
-                            setSelectedRequest(request);
-                            setApprovalAction('approve');
-                            setShowApprovalModal(true);
-                          }}
-                          className="flex-1 px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50"
-                          disabled={isApproving}
-                        >
-                          Approve
-                        </button>
-                        <button
-                          onClick={() => {
-                            setSelectedRequest(request);
-                            setApprovalAction('reject');
-                            setShowApprovalModal(true);
-                          }}
-                          className="flex-1 px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 disabled:opacity-50"
-                          disabled={isApproving}
-                        >
-                          Reject
-                        </button>
-                      </div>
-                    )}
+          <div className="space-y-8 animate-fade-in">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 stagger-item">
+              <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-8 border-l-4 border-indigo-600 card-hover animate-slide-in-bottom">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-gray-600 dark:text-gray-400 text-sm uppercase font-semibold tracking-wide">Total Appointments</p>
+                    <p className="text-4xl font-bold text-indigo-600 mt-3">{appointments.length}</p>
                   </div>
-                ))
-              ) : (
-                <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-8 text-center">
-                  <p className="text-gray-600">No requests found</p>
+                  <div className="w-14 h-14 bg-gradient-to-br from-indigo-100 to-indigo-200 dark:from-indigo-900/30 dark:to-indigo-900/50 rounded-full flex items-center justify-center text-2xl">
+                    📅
+                  </div>
                 </div>
-              )}
+              </div>
+              <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-8 border-l-4 border-yellow-600 card-hover animate-slide-in-bottom">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-gray-600 dark:text-gray-400 text-sm uppercase font-semibold tracking-wide">Pending Requests</p>
+                    <p className="text-4xl font-bold text-yellow-600 mt-3">{studentRequests.filter(r => r.status === 'pending').length}</p>
+                  </div>
+                  <div className="w-14 h-14 bg-gradient-to-br from-yellow-100 to-yellow-200 dark:from-yellow-900/30 dark:to-yellow-900/50 rounded-full flex items-center justify-center text-2xl">
+                    📋
+                  </div>
+                </div>
+              </div>
+              <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-8 border-l-4 border-green-600 card-hover animate-slide-in-bottom">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-gray-600 dark:text-gray-400 text-sm uppercase font-semibold tracking-wide">Total Students</p>
+                    <p className="text-4xl font-bold text-green-600 mt-3">{students.length}</p>
+                  </div>
+                  <div className="w-14 h-14 bg-gradient-to-br from-green-100 to-green-200 dark:from-green-900/30 dark:to-green-900/50 rounded-full flex items-center justify-center text-2xl">
+                    👥
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg overflow-hidden border border-indigo-100 dark:border-indigo-900/30 animate-slide-in-bottom">
+              <div className="p-8 border-b-2 border-indigo-100 dark:border-indigo-900/30 bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-indigo-900/20 dark:to-purple-900/20">
+                <h2 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-3">
+                  <span className="text-2xl">📅</span> Upcoming Appointments
+                </h2>
+              </div>
+              <div className="p-8 space-y-3">
+                {appointments.length > 0 ? (
+                  appointments.slice(0, 5).map((apt, idx) => (
+                    <div key={apt.id} className="flex justify-between p-5 bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-700/50 dark:to-gray-700/30 rounded-xl hover:shadow-md transition transform hover:scale-102 border border-gray-200 dark:border-gray-600 stagger-item" style={{animationDelay: `${idx * 0.1}s`}}>
+                      <div>
+                        <p className="font-semibold text-gray-900 dark:text-white text-lg">{apt.student_name || 'Student'}</p>
+                        <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">📍 {apt.topic}</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">🕒 {apt.requested_date} at {apt.requested_time}</p>
+                      </div>
+                      <span className={`px-4 py-2 rounded-full text-sm font-bold whitespace-nowrap ml-4 h-fit ${apt.status === 'pending' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/40 dark:text-yellow-300 animate-pulse' : apt.status === 'approved' ? 'bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300' : 'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300'}`}>
+                        {apt.status.toUpperCase()}
+                      </span>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-center py-8 text-gray-500 dark:text-gray-400">No appointments yet</p>
+                )}
+              </div>
             </div>
           </div>
         )}
 
         {/* Appointments Tab */}
         {activeTab === 'appointments' && (
-          <div>
-            <h2 className="text-2xl font-bold mb-6">All Student Appointments</h2>
-            
-            <div className="space-y-4">
-              {appointments.length > 0 ? (
-                appointments.map((apt) => (
-                  <div key={apt.id} className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 border-l-4 border-indigo-600">
-                    <div className="flex justify-between items-start mb-4">
-                      <div>
-                        <h3 className="text-lg font-bold">{apt.student?.name || apt.student_name || 'Student'}</h3>
-                        <p className="text-sm text-gray-600">{apt.topic}</p>
-                      </div>
-                      <span className={`px-3 py-1 rounded text-xs font-medium ${getStatusBadgeClass(apt.status)}`}>
-                        {apt.status}
-                      </span>
-                    </div>
+          <div className="space-y-6 animate-fade-in">
+            <div className="mb-8">
+              <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 via-cyan-600 to-teal-600 bg-clip-text text-transparent mb-2">
+                Appointments
+              </h1>
+              <p className="text-gray-600 dark:text-gray-400">Manage and schedule appointments with students</p>
+            </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                      <div className="flex items-center gap-2 text-gray-600">
-                        <Users className="w-4 h-4" />
-                        <span className="text-sm">{apt.student?.email || 'N/A'}</span>
-                      </div>
-                      <div className="flex items-center gap-2 text-gray-600">
-                        <Calendar className="w-4 h-4" />
-                        <span className="text-sm">{apt.requested_date || apt.date || 'N/A'}</span>
-                      </div>
-                      <div className="flex items-center gap-2 text-gray-600">
-                        <Clock className="w-4 h-4" />
-                        <span className="text-sm">{apt.requested_time || apt.time || 'N/A'}</span>
-                      </div>
-                    </div>
-
-                    {apt.status === 'pending' && (
-                      <div className="flex gap-2 pt-4 border-t">
-                        <button
-                          onClick={() => {
-                            setSelectedRequest(apt);
-                            setApprovalAction('approve');
-                            setShowApprovalModal(true);
-                          }}
-                          className="flex-1 px-3 py-2 bg-green-600 text-white rounded hover:bg-green-700 text-sm font-medium disabled:opacity-50"
-                          disabled={isApproving}
-                        >
-                          Approve
-                        </button>
-                        <button
-                          onClick={() => {
-                            setSelectedRequest(apt);
-                            setApprovalAction('reject');
-                            setShowApprovalModal(true);
-                          }}
-                          className="flex-1 px-3 py-2 bg-red-600 text-white rounded hover:bg-red-700 text-sm font-medium disabled:opacity-50"
-                          disabled={isApproving}
-                        >
-                          Reject
-                        </button>
-                      </div>
-                    )}
+            {/* Appointments Stats */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 stagger-item">
+              <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-8 border-l-4 border-yellow-600 card-hover animate-slide-in-bottom">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-gray-600 dark:text-gray-400 text-sm uppercase font-semibold tracking-wide">Pending</p>
+                    <p className="text-4xl font-bold text-yellow-600 mt-3">{appointments.filter(a => a.status === 'pending').length}</p>
                   </div>
-                ))
-              ) : (
-                <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-12 text-center">
-                  <Calendar className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                  <p className="text-gray-600">No appointments yet</p>
+                  <div className="w-14 h-14 bg-gradient-to-br from-yellow-100 to-yellow-200 dark:from-yellow-900/30 dark:to-yellow-900/50 rounded-full flex items-center justify-center text-2xl">
+                    ⏳
+                  </div>
                 </div>
-              )}
+              </div>
+              <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-8 border-l-4 border-green-600 card-hover animate-slide-in-bottom">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-gray-600 dark:text-gray-400 text-sm uppercase font-semibold tracking-wide">Approved</p>
+                    <p className="text-4xl font-bold text-green-600 mt-3">{appointments.filter(a => a.status === 'approved').length}</p>
+                  </div>
+                  <div className="w-14 h-14 bg-gradient-to-br from-green-100 to-green-200 dark:from-green-900/30 dark:to-green-900/50 rounded-full flex items-center justify-center text-2xl">
+                    ✅
+                  </div>
+                </div>
+              </div>
+              <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-8 border-l-4 border-blue-600 card-hover animate-slide-in-bottom">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-gray-600 dark:text-gray-400 text-sm uppercase font-semibold tracking-wide">Total</p>
+                    <p className="text-4xl font-bold text-blue-600 mt-3">{appointments.length}</p>
+                  </div>
+                  <div className="w-14 h-14 bg-gradient-to-br from-blue-100 to-blue-200 dark:from-blue-900/30 dark:to-blue-900/50 rounded-full flex items-center justify-center text-2xl">
+                    📅
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Appointments List */}
+            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg overflow-hidden border border-blue-100 dark:border-blue-900/30 animate-slide-in-bottom">
+              <div className="p-8 border-b-2 border-blue-100 dark:border-blue-900/30 bg-gradient-to-r from-blue-50 to-cyan-50 dark:from-blue-900/20 dark:to-cyan-900/20">
+                <h2 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-3">
+                  <span className="text-2xl">📅</span> All Appointments
+                </h2>
+              </div>
+              <div className="p-8">
+                {appointments.length > 0 ? (
+                  <div className="space-y-3">
+                    {appointments.map((apt, idx) => (
+                      <div key={apt.id} className="p-5 bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-700/50 dark:to-gray-700/30 rounded-xl hover:shadow-md transition border border-gray-200 dark:border-gray-600 stagger-item" style={{animationDelay: `${idx * 0.1}s`}}>
+                        <div className="flex justify-between items-start mb-4">
+                          <div className="flex-1">
+                            <p className="font-semibold text-gray-900 dark:text-white text-lg">{apt.student_name || 'Student'}</p>
+                            <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">📍 {apt.topic}</p>
+                            <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">🕒 {apt.requested_date} at {apt.requested_time}</p>
+                          </div>
+                          <span className={`px-4 py-2 rounded-full text-sm font-bold whitespace-nowrap ${apt.status === 'pending' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/40 dark:text-yellow-300 animate-pulse' : apt.status === 'approved' ? 'bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300' : 'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300'}`}>
+                            {apt.status.toUpperCase()}
+                          </span>
+                        </div>
+                        
+                        {apt.status === 'pending' && (
+                          <div className="flex gap-2 pt-3 border-t border-gray-200 dark:border-gray-600">
+                            <button
+                              onClick={() => {
+                                setSelectedRequest(apt);
+                                setApprovalAction('approve');
+                                setShowApprovalModal(true);
+                              }}
+                              className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition font-medium"
+                              disabled={isApproving}
+                            >
+                              ✅ Approve
+                            </button>
+                            <button
+                              onClick={() => {
+                                setSelectedRequest(apt);
+                                setApprovalAction('reject');
+                                setShowApprovalModal(true);
+                              }}
+                              className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition font-medium"
+                              disabled={isApproving}
+                            >
+                              ❌ Reject
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-12">
+                    <p className="text-gray-500 dark:text-gray-400 text-lg">No appointments yet</p>
+                    <p className="text-gray-400 dark:text-gray-500 text-sm mt-2">Appointments will appear here when students request them</p>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         )}
@@ -990,6 +998,156 @@ const CounselorDashboard = () => {
           </div>
         )}
 
+        {/* Announcements Tab */}
+        {activeTab === 'announcements' && (
+          <div className="space-y-6">
+            <div className="flex justify-between items-center">
+              <div>
+                <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
+                  Announcements
+                </h2>
+                <p className="text-gray-600 dark:text-gray-400">
+                  Create and manage announcements for your students
+                </p>
+              </div>
+              <button
+                onClick={() => {
+                  setEditingAnnouncement(null);
+                  setShowAnnouncementForm(true);
+                }}
+                className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition"
+              >
+                <Plus className="w-5 h-5" />
+                Create Announcement
+              </button>
+            </div>
+
+            {announcementError && (
+              <div className="p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-400 rounded-lg">
+                {announcementError}
+              </div>
+            )}
+
+            {announcementLoading ? (
+              <div className="flex justify-center py-12">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+              </div>
+            ) : announcements.length === 0 ? (
+              <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-12 text-center">
+                <Megaphone className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                <p className="text-gray-600 dark:text-gray-400 text-lg">
+                  No announcements yet
+                </p>
+                <p className="text-gray-500 dark:text-gray-500 text-sm mt-1">
+                  Create your first announcement to share with students
+                </p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {announcements.map(announcement => (
+                  <div
+                    key={announcement.id}
+                    className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-md hover:shadow-lg transition overflow-hidden"
+                  >
+                    <div className="p-6">
+                      <div className="flex justify-between items-start mb-3">
+                        <div className="flex-1 cursor-pointer" onClick={() => setExpandedAnnouncement(expandedAnnouncement?.id === announcement.id ? null : announcement)}>
+                          <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">
+                            {announcement.title}
+                          </h3>
+                          <div className="flex items-center gap-2 mb-3">
+                            <span className={`inline-block px-2 py-1 text-xs font-semibold rounded-full ${
+                              announcement.category === 'tips' ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300' :
+                              announcement.category === 'alert' ? 'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300' :
+                              announcement.category === 'news' ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300' :
+                              'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-300'
+                            }`}>
+                              {announcement.category}
+                            </span>
+                            <span className={`text-xs font-medium ${announcement.is_active ? 'text-green-600 dark:text-green-400' : 'text-gray-500 dark:text-gray-400'}`}>
+                              {announcement.is_active ? 'Active' : 'Inactive'}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <p className={`text-gray-700 dark:text-gray-300 mb-4 cursor-pointer ${expandedAnnouncement?.id === announcement.id ? '' : 'line-clamp-3'}`}
+                        onClick={() => setExpandedAnnouncement(expandedAnnouncement?.id === announcement.id ? null : announcement)}>
+                        {announcement.content}
+                      </p>
+
+                      <div className="text-xs text-gray-500 dark:text-gray-400 mb-4">
+                        Posted: {new Date(announcement.published_at || announcement.created_at).toLocaleDateString()}
+                      </div>
+
+                      {/* Reactions */}
+                      <div className="mb-4 pb-4 border-b border-gray-200 dark:border-gray-700">
+                        <h4 className="font-semibold text-gray-900 dark:text-white mb-2 text-sm">
+                          Reactions
+                        </h4>
+                        <EmojiReactions
+                          announcementId={announcement.id}
+                          reactions={announcementReactions[announcement.id] || []}
+                          onReactionsUpdate={(newReactions) => {
+                            setAnnouncementReactions({
+                              ...announcementReactions,
+                              [announcement.id]: newReactions,
+                            });
+                          }}
+                        />
+                      </div>
+
+                      {/* Comments */}
+                      <div className="mb-4 pb-4 border-b border-gray-200 dark:border-gray-700">
+                        <h4 className="font-semibold text-gray-900 dark:text-white mb-2 text-sm">
+                          Comments
+                        </h4>
+                        {user && (
+                          <AnnouncementComments
+                            announcementId={announcement.id}
+                            userId={user.id}
+                            userName={user.name}
+                            userImage={user.profile_picture}
+                          />
+                        )}
+                      </div>
+
+                      {/* Expandable Section for Additional Content */}
+                      {expandedAnnouncement?.id === announcement.id && (
+                        <div className="mb-4 py-4 border-t border-gray-200 dark:border-gray-700 space-y-4">
+                          <div className="text-gray-600 dark:text-gray-400 text-sm">
+                            <p>Additional announcement details...</p>
+                          </div>
+                        </div>
+                      )}
+
+                      <div className="flex gap-2 pt-4 border-t border-gray-200 dark:border-gray-700">
+                        <button
+                          onClick={() => {
+                            setEditingAnnouncement(announcement);
+                            setShowAnnouncementForm(true);
+                          }}
+                          className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 rounded hover:bg-blue-100 dark:hover:bg-blue-900/40 font-medium text-sm transition"
+                        >
+                          <Edit2 className="w-4 h-4" />
+                          Edit
+                        </button>
+                        <button
+                          onClick={() => handleDeleteAnnouncement(announcement.id)}
+                          className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded hover:bg-red-100 dark:hover:bg-red-900/40 font-medium text-sm transition"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                          Delete
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Profile Tab */}
         {activeTab === 'profile' && (
           <ProfileSettings
@@ -1010,7 +1168,97 @@ const CounselorDashboard = () => {
             onMessageClear={() => setMessage('')}
           />
         )}
+
+        {/* Requests Tab */}
+        {activeTab === 'requests' && (
+          <div className="space-y-6">
+            <div className="flex gap-2">
+              {['all', 'pending', 'approved', 'rejected'].map(status => (
+                <button
+                  key={status}
+                  onClick={() => setRequestFilter(status)}
+                  className={`px-4 py-2 rounded-lg font-medium ${
+                    requestFilter === status
+                      ? 'bg-indigo-600 text-white'
+                      : 'bg-white dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-200'
+                  }`}
+                >
+                  {status.charAt(0).toUpperCase() + status.slice(1)}
+                </button>
+              ))}
+            </div>
+
+            <div className="space-y-4">
+              {filteredRequests.length > 0 ? (
+                filteredRequests.map(request => (
+                  <div key={request.id} className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+                    <div className="flex justify-between items-start mb-4">
+                      <div>
+                        <h3 className="text-lg font-semibold">{request.student_name}</h3>
+                        <p className="text-sm text-gray-600">{request.student_email}</p>
+                        <p className="text-sm mt-2"><strong>Type:</strong> {request.request_type}</p>
+                        <p className="text-sm"><strong>Purpose:</strong> {request.purpose}</p>
+                      </div>
+                      <span className={`px-3 py-1 rounded text-xs font-medium ${
+                        request.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                        request.status === 'approved' ? 'bg-green-100 text-green-800' :
+                        'bg-red-100 text-red-800'
+                      }`}>
+                        {request.status}
+                      </span>
+                    </div>
+
+                    {request.status === 'pending' && (
+                      <div className="flex gap-2 pt-4 border-t">
+                        <button
+                          onClick={() => {
+                            setSelectedRequest(request);
+                            setApprovalAction('approve');
+                            setShowApprovalModal(true);
+                          }}
+                          className="flex-1 px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50"
+                          disabled={isApproving}
+                        >
+                          Approve
+                        </button>
+                        <button
+                          onClick={() => {
+                            setSelectedRequest(request);
+                            setApprovalAction('reject');
+                            setShowApprovalModal(true);
+                          }}
+                          className="flex-1 px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 disabled:opacity-50"
+                          disabled={isApproving}
+                        >
+                          Reject
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                ))
+              ) : (
+                <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-8 text-center">
+                  <p className="text-gray-600">No requests found</p>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
       </div>
+      </div>
+      </div>
+
+      {/* Announcement Form Modal */}
+      {showAnnouncementForm && (
+        <CounselorAnnouncementForm
+          onClose={() => {
+            setShowAnnouncementForm(false);
+            setEditingAnnouncement(null);
+          }}
+          onAnnouncementCreated={handleAnnouncementCreated}
+          initialAnnouncement={editingAnnouncement}
+        />
+      )}
 
       {/* Approval Modal */}
       {showApprovalModal && selectedRequest && (
@@ -1107,8 +1355,7 @@ const CounselorDashboard = () => {
           </div>
         </div>
       )}
-    </div>
-    </div>
+    </>
   );
 };
 
