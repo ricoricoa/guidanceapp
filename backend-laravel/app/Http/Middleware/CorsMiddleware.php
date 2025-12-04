@@ -15,39 +15,47 @@ class CorsMiddleware
         $allowedOrigins = [
             'http://localhost:5173',
             'http://127.0.0.1:5173',
-            'localhost:5173',
-            '127.0.0.1:5173',
             'http://localhost:5174',
             'http://127.0.0.1:5174',
             'http://localhost:5180',
             'http://127.0.0.1:5180',
         ];
 
-        $origin = $request->header('origin');
-        
-        // Allow any localhost origin in development
-        $isLocalhost = strpos($origin, 'localhost') !== false || 
-                      strpos($origin, '127.0.0.1') !== false ||
-                      strpos($origin, '0.0.0.0') !== false;
+        $origin = $request->header('origin') ?? '';
 
-        if ($isLocalhost) {
-            return $next($request)
-                ->header('Access-Control-Allow-Origin', $origin)
-                ->header('Access-Control-Allow-Credentials', 'true')
-                ->header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH')
-                ->header('Access-Control-Allow-Headers', 'Origin, Content-Type, Accept, Authorization, X-Requested-With, X-CSRF-TOKEN')
-                ->header('Access-Control-Expose-Headers', 'Content-Length, X-JSON-Response');
+        // Determine allowed origin value to send back
+        $allowOrigin = '*';
+        if ($origin !== '') {
+            $isLocalhost = preg_match('/localhost|127\.0\.0\.1|0\.0\.0\.0/', $origin);
+            if (in_array($origin, $allowedOrigins) || $isLocalhost) {
+                $allowOrigin = $origin;
+            } else {
+                // If origin is present but not allowed, still echo it (useful for debugging).
+                $allowOrigin = $origin;
+            }
         }
 
-        // Handle preflight requests
+        // If we allow all origins ('*'), we must NOT set Allow-Credentials to true
+        $allowCredentials = $allowOrigin === '*' ? 'false' : 'true';
+
+        $headers = [
+            'Access-Control-Allow-Origin' => $allowOrigin,
+            'Access-Control-Allow-Credentials' => $allowCredentials,
+            'Access-Control-Allow-Methods' => 'GET, POST, PUT, DELETE, OPTIONS, PATCH',
+            'Access-Control-Allow-Headers' => 'Origin, Content-Type, Accept, Authorization, X-Requested-With, X-CSRF-TOKEN',
+            'Access-Control-Expose-Headers' => 'Content-Length, X-JSON-Response'
+        ];
+
+        // Handle preflight requests early
         if ($request->isMethod('OPTIONS')) {
-            return response('', 204)
-                ->header('Access-Control-Allow-Origin', $origin)
-                ->header('Access-Control-Allow-Credentials', 'true')
-                ->header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH')
-                ->header('Access-Control-Allow-Headers', 'Origin, Content-Type, Accept, Authorization, X-Requested-With, X-CSRF-TOKEN');
+            return response('', 204)->withHeaders($headers);
         }
 
-        return $next($request);
+        $response = $next($request);
+        foreach ($headers as $key => $value) {
+            $response->headers->set($key, $value);
+        }
+
+        return $response;
     }
 }

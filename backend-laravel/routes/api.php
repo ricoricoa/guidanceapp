@@ -1,6 +1,8 @@
 <?php
 
 use App\Http\Controllers\Api\V1\AuthController;
+use App\Http\Controllers\AIChatController;
+use App\Http\Controllers\API\V1\ChatController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -13,6 +15,9 @@ Route::get('/user', function (Request $request) {
     return $request->user();
 })->middleware('auth:sanctum');
 
-Route::get('/user', function (Request $request) {
+Route::get('/user', action: function (Request $request) {
     return $request->user();
 })->middleware('auth:sanctum');
+
+Route::post('ai/chat', [AIChatController::class, 'chat']);
+Route::post('/chat', [ChatController::class, 'chat']);

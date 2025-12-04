@@ -4,13 +4,14 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use App\Models\CounselorRequest;
+use App\Models\CertificateRequest;
 use App\Models\User;
 use Illuminate\Http\Request;
 
 class DashboardController extends Controller
 {
     /**
-     * Get student dashboard data
+     * Get student dashboard data - COMBINED endpoint with all student-related data
      */
     public function studentDashboard(Request $request)
     {
@@ -22,63 +23,87 @@ class DashboardController extends Controller
             ], 403);
         }
 
-        // Get appointment statistics
-        $upcomingSessions = CounselorRequest::where('student_id', $user->id)
-            ->where('status', 'scheduled')
-            ->count();
+        // Cache the ENTIRE student dashboard for 3 seconds per user
+        $cacheKey = 'student_dashboard_full_' . $user->id;
+        $cached = \Cache::remember($cacheKey, 3, function () use ($user) {
+            // Get appointment statistics
+            $upcomingSessions = CounselorRequest::where('student_id', $user->id)
+                ->where('status', 'scheduled')
+                ->count();
 
-        $completedSessions = CounselorRequest::where('student_id', $user->id)
-            ->where('status', 'completed')
-            ->count();
+            $completedSessions = CounselorRequest::where('student_id', $user->id)
+                ->where('status', 'completed')
+                ->count();
 
-        // Get recent appointments
-        $recentActivities = CounselorRequest::where('student_id', $user->id)
-            ->with(['counselor:id,name,email'])
-            ->orderBy('created_at', 'desc')
-            ->limit(5)
-            ->get()
-            ->map(function ($appt) {
-                return [
-                    'id' => $appt->id,
-                    'counselor_name' => $appt->counselor->name ?? 'Unknown',
-                    'topic' => $appt->topic,
-                    'status' => $appt->status,
-                    'requested_date' => $appt->requested_date,
-                    'created_at' => $appt->created_at,
-                ];
-            });
+            // Get recent appointments
+            $recentActivities = CounselorRequest::where('student_id', $user->id)
+                ->with(['counselor:id,name,email'])
+                ->orderBy('created_at', 'desc')
+                ->limit(5)
+                ->get()
+                ->map(function ($appt) {
+                    return [
+                        'id' => $appt->id,
+                        'counselor_name' => $appt->counselor->name ?? 'Unknown',
+                        'topic' => $appt->topic,
+                        'status' => $appt->status,
+                        'requested_date' => $appt->requested_date,
+                        'created_at' => $appt->created_at,
+                    ];
+                });
 
-        // Get upcoming appointments
-        $upcomingAppointments = CounselorRequest::where('student_id', $user->id)
-            ->where('status', 'scheduled')
-            ->with(['counselor:id,name,email'])
-            ->orderBy('requested_date', 'asc')
-            ->get()
-            ->map(function ($appt) {
-                return [
-                    'id' => $appt->id,
-                    'counselor_name' => $appt->counselor->name ?? 'Unknown',
-                    'counselor_email' => $appt->counselor->email ?? '',
-                    'topic' => $appt->topic,
-                    'date' => $appt->requested_date,
-                    'time' => $appt->requested_time,
-                    'status' => $appt->status,
-                ];
-            });
+            // Get upcoming appointments
+            $upcomingAppointments = CounselorRequest::where('student_id', $user->id)
+                ->where('status', 'scheduled')
+                ->with(['counselor:id,name,email'])
+                ->orderBy('requested_date', 'asc')
+                ->limit(20)
+                ->get()
+                ->map(function ($appt) {
+                    return [
+                        'id' => $appt->id,
+                        'counselor_name' => $appt->counselor->name ?? 'Unknown',
+                        'counselor_email' => $appt->counselor->email ?? '',
+                        'topic' => $appt->topic,
+                        'date' => $appt->requested_date,
+                        'time' => $appt->requested_time,
+                        'status' => $appt->status,
+                    ];
+                });
 
-        return response()->json([
-            'data' => [
-                'user' => $user,
+            // Fetch certificate requests (limit to 20)
+            $certificateRequests = CertificateRequest::where('user_id', $user->id)
+                ->orderBy('created_at', 'desc')
+                ->limit(20)
+                ->get()
+                ->map(function ($req) {
+                    return [
+                        'id' => $req->id,
+                        'certificate_type' => $req->certificate_type,
+                        'purpose' => $req->purpose,
+                        'status' => $req->status ?? 'pending',
+                        'notes' => $req->notes,
+                        'submitted_at' => $req->submitted_at ?? $req->created_at,
+                        'counselor_remarks' => $req->counselor_remarks ?? '',
+                    ];
+                });
+
+            return [
                 'stats' => [
                     'upcoming_sessions' => $upcomingSessions,
                     'completed_sessions' => $completedSessions,
                     'total_sessions' => CounselorRequest::where('student_id', $user->id)->count(),
-                    'messages' => 0, // Placeholder for messaging system
-                    'resources' => 0, // Placeholder for resources system
+                    'messages' => 0,
+                    'resources' => 0,
                 ],
                 'recent_activities' => $recentActivities,
                 'upcoming_appointments' => $upcomingAppointments,
-            ],
+                'certificate_requests' => $certificateRequests,
+            ];
+        });
+
+        return response()->json([
+            'data' => array_merge(['user' => $user], $cached),
             'message' => 'Student dashboard data retrieved successfully',
             'status' => 200,
         ]);
@@ -97,67 +122,70 @@ class DashboardController extends Controller
             ], 403);
         }
 
-        // Get list of students assigned/requesting with this counselor
-        // Students can be assigned via counselor_id field OR through counselor_requests
-        $studentIds = User::where('counselor_id', $user->id)
-            ->pluck('id')
-            ->toArray();
-        
-        $requestedStudentIds = CounselorRequest::where('counselor_id', $user->id)
-            ->distinct()
-            ->pluck('student_id')
-            ->toArray();
-        
-        $allStudentIds = array_unique(array_merge($studentIds, $requestedStudentIds));
-        
-        $students = User::whereIn('id', $allStudentIds)
-        ->select('id', 'name', 'email', 'created_at')
-        ->withCount(['counselorRequests' => function ($query) use ($user) {
-            $query->where('counselor_id', $user->id);
-        }])
-        ->get()
-        ->map(function ($student) {
+        // Cache per-user for 5 seconds to avoid repeated heavy queries
+        $cacheKey = 'guidance_dashboard_' . $user->id;
+        $cached = \Cache::remember($cacheKey, 5, function () use ($user) {
+            // Get list of students assigned/requesting with this counselor
+            // Students can be assigned via counselor_id field OR through counselor_requests
+            $studentIds = User::where('counselor_id', $user->id)
+                ->pluck('id')
+                ->toArray();
+
+            $requestedStudentIds = CounselorRequest::where('counselor_id', $user->id)
+                ->distinct()
+                ->pluck('student_id')
+                ->toArray();
+
+            $allStudentIds = array_unique(array_merge($studentIds, $requestedStudentIds));
+
+            // Load only 50 students at a time to avoid memory/performance issues
+            $students = User::whereIn('id', array_slice($allStudentIds, 0, 50))
+                ->select('id', 'name', 'email', 'created_at')
+                ->withCount(['counselorRequests' => function ($query) use ($user) {
+                    $query->where('counselor_id', $user->id);
+                }])
+                ->get()
+                ->map(function ($student) {
+                    return [
+                        'id' => $student->id,
+                        'name' => $student->name,
+                        'email' => $student->email,
+                        'sessions' => $student->counselor_requests_count,
+                        'status' => 'active',
+                    ];
+                });
+
+            // Get appointments/requests (limit to 100 most recent)
+            $appointments = CounselorRequest::where('counselor_id', $user->id)
+                ->with(['student:id,name,email'])
+                ->orderBy('requested_date', 'asc')
+                ->limit(100)
+                ->get()
+                ->map(function ($appt) {
+                    return [
+                        'id' => $appt->id,
+                        'student_id' => $appt->student_id,
+                        'student_name' => $appt->student->name ?? 'Unknown',
+                        'student_email' => $appt->student->email ?? '',
+                        'date' => $appt->requested_date,
+                        'time' => $appt->requested_time,
+                        'topic' => $appt->topic,
+                        'status' => $appt->status,
+                        'notes' => $appt->notes ?? '',
+                    ];
+                });
+
+            // Get statistics from already-loaded data
+            $totalStudents = count($allStudentIds);
+            $totalSessions = CounselorRequest::where('counselor_id', $user->id)->count();
+            $completedSessions = CounselorRequest::where('counselor_id', $user->id)
+                ->where('status', 'completed')
+                ->count();
+            $upcomingSessions = CounselorRequest::where('counselor_id', $user->id)
+                ->where('status', 'scheduled')
+                ->count();
+
             return [
-                'id' => $student->id,
-                'name' => $student->name,
-                'email' => $student->email,
-                'sessions' => $student->counselor_requests_count,
-                'status' => 'active',
-            ];
-        });
-
-        // Get appointments/requests
-        $appointments = CounselorRequest::where('counselor_id', $user->id)
-            ->with(['student:id,name,email'])
-            ->orderBy('requested_date', 'asc')
-            ->get()
-            ->map(function ($appt) {
-                return [
-                    'id' => $appt->id,
-                    'student_id' => $appt->student_id,
-                    'student_name' => $appt->student->name ?? 'Unknown',
-                    'student_email' => $appt->student->email ?? '',
-                    'date' => $appt->requested_date,
-                    'time' => $appt->requested_time,
-                    'topic' => $appt->topic,
-                    'status' => $appt->status,
-                    'notes' => $appt->notes ?? '',
-                ];
-            });
-
-        // Get statistics
-        $totalStudents = $students->count();
-        $totalSessions = CounselorRequest::where('counselor_id', $user->id)->count();
-        $completedSessions = CounselorRequest::where('counselor_id', $user->id)
-            ->where('status', 'completed')
-            ->count();
-        $upcomingSessions = CounselorRequest::where('counselor_id', $user->id)
-            ->where('status', 'scheduled')
-            ->count();
-
-        return response()->json([
-            'data' => [
-                'user' => $user,
                 'stats' => [
                     'total_students' => $totalStudents,
                     'total_sessions' => $totalSessions,
@@ -166,7 +194,11 @@ class DashboardController extends Controller
                 ],
                 'students' => $students,
                 'appointments' => $appointments,
-            ],
+            ];
+        });
+
+        return response()->json([
+            'data' => array_merge(['user' => $user], $cached),
             'message' => 'Guidance dashboard data retrieved successfully',
             'status' => 200,
         ]);
@@ -234,3 +266,4 @@ class DashboardController extends Controller
         ]);
     }
 }
+

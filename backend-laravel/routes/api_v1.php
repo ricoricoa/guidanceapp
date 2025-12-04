@@ -13,6 +13,7 @@ use App\Http\Controllers\Api\V1\AnnouncementController;
 use App\Http\Controllers\Api\V1\AnnouncementCommentController;
 use App\Http\Controllers\Api\V1\AnnouncementReactionController;
 use App\Http\Controllers\Api\V1\ReportController;
+use App\Http\Controllers\Api\V1\ChatController;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\Route;
@@ -24,6 +25,9 @@ use Illuminate\Support\Facades\Route;
 Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
 	return $request->user();
 });
+
+// AI Chatbot route (public route - no authentication required)
+Route::post('/chat', [ChatController::class, 'chat']);
 
 // Role-protected dashboard endpoints
 Route::middleware(['auth:sanctum', 'role:student'])->group(function () {

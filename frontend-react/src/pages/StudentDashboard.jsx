@@ -63,11 +63,12 @@ const StudentDashboard = () => {
   const [notificationDropdownOpen, setNotificationDropdownOpen] = useState(false);
   const [notifications, setNotifications] = useState([]);
 
-  // Fetch dashboard data
+  // Fetch all dashboard data in a single call
   useEffect(() => {
     let mounted = true;
     const fetchDashboardData = async () => {
       try {
+        // Single combined endpoint returns dashboard + appointments + certificates
         const res = await api.get('/api/v1/student/dashboard');
         if (!mounted) return;
         
@@ -98,6 +99,10 @@ const StudentDashboard = () => {
         if (dashboardData.upcoming_appointments) {
           setUpcomingAppointments(dashboardData.upcoming_appointments);
         }
+        // Load certificate requests from combined response
+        if (dashboardData.certificate_requests) {
+          setCertificateRequests(dashboardData.certificate_requests);
+        }
       } catch (err) {
         if (!mounted) return;
         if (err.response?.status === 403) {
@@ -114,10 +119,10 @@ const StudentDashboard = () => {
     return () => (mounted = false);
   }, []);
 
-  // Fetch student appointments
+  // Refresh appointments when requested
   useEffect(() => {
     let mounted = true;
-    const fetchAppointments = async () => {
+    const doRefreshAppointments = async () => {
       try {
         const res = await api.get('/api/v1/student/appointments');
         if (!mounted) return;
@@ -141,17 +146,19 @@ const StudentDashboard = () => {
       }
     };
 
-    // Only fetch when refreshAppointments changes, not continuously
-    fetchAppointments();
+    // Only fetch on manual refresh, not initial load
+    if (refreshAppointments > 0) {
+      doRefreshAppointments();
+    }
     return () => {
       mounted = false;
     };
   }, [refreshAppointments]);
 
-  // Fetch student certificate requests
+  // Refresh certificates when requested
   useEffect(() => {
     let mounted = true;
-    const fetchCertificateRequests = async () => {
+    const doRefreshCerts = async () => {
       try {
         const res = await api.get('/api/v1/student/certificate-requests');
         if (!mounted) return;
@@ -175,8 +182,10 @@ const StudentDashboard = () => {
       }
     };
 
-    // Only fetch when refreshCertificates changes, not continuously
-    fetchCertificateRequests();
+    // Only fetch on manual refresh, not initial load
+    if (refreshCertificates > 0) {
+      doRefreshCerts();
+    }
     return () => {
       mounted = false;
     };

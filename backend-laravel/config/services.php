@@ -27,6 +27,13 @@ return [
         'secret' => env('AWS_SECRET_ACCESS_KEY'),
         'region' => env('AWS_DEFAULT_REGION', 'us-east-1'),
     ],
+    'openai' => [
+        // Provide both keys 'key' and 'api_key' because different parts
+        // of the app expect different config keys.
+        'key' => env('OPENAI_API_KEY'),
+        'api_key' => env('OPENAI_API_KEY'),
+        'model' => env('OPENAI_MODEL', 'gpt-4o-mini'),
+    ],
 
     'slack' => [
         'notifications' => [
