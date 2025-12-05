@@ -61,14 +61,17 @@ const StudentDashboard = () => {
   });
 
   // Common program options for tertiary students
-  const PROGRAM_OPTIONS = [
-    'BS Computer Science',
-    'BS Information Technology',
-    'BS Entrepreneurship',
-    'BS e',
-    'BA Communication',
-    'BS Business Administration'
-  ];
+    const PROGRAM_OPTIONS = [
+      'BSIT',
+      'BSCS',
+      'ENTREP',
+      'EDUC',
+      'CRIM',
+      'FISHERIES',
+      'BSHM',
+      'BSTM',
+      'AB POLSCI'
+    ];
   const [profilePicture, setProfilePicture] = useState(null);
   const [profilePicturePreview, setProfilePicturePreview] = useState(null);
   const [saving, setSaving] = useState(false);
