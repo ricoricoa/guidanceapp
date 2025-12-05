@@ -53,6 +53,7 @@ const StudentDashboard = () => {
     phone: '',
     date_of_birth: '',
     grade_level: '',
+    program: '',
     guardian_name: '',
     guardian_contact: ''
   });
@@ -83,6 +84,7 @@ const StudentDashboard = () => {
           phone: u.phone ?? '',
           date_of_birth: u.date_of_birth ?? '',
           grade_level: u.grade_level ?? '',
+          program: u.program ?? '',
           guardian_name: u.guardian_name ?? '',
           guardian_contact: u.guardian_contact ?? ''
         });
@@ -300,6 +302,9 @@ const StudentDashboard = () => {
       if (formData.grade_level && formData.grade_level.trim()) {
         profileData.grade_level = formData.grade_level;
       }
+      if (formData.program && formData.program.trim()) {
+        profileData.program = formData.program;
+      }
       if (formData.guardian_name && formData.guardian_name.trim()) {
         profileData.guardian_name = formData.guardian_name;
       }
@@ -320,6 +325,7 @@ const StudentDashboard = () => {
         if (profileData.grade_level) formDataToSend.append('grade_level', profileData.grade_level);
         if (profileData.guardian_name) formDataToSend.append('guardian_name', profileData.guardian_name);
         if (profileData.guardian_contact) formDataToSend.append('guardian_contact', profileData.guardian_contact);
+        if (profileData.program) formDataToSend.append('program', profileData.program);
         
         formDataToSend.append('profile_picture', profilePicture);
         
@@ -335,6 +341,7 @@ const StudentDashboard = () => {
           phone: updatedUser.phone ?? '',
           date_of_birth: updatedUser.date_of_birth ?? '',
           grade_level: updatedUser.grade_level ?? '',
+          program: updatedUser.program ?? '',
           guardian_name: updatedUser.guardian_name ?? '',
           guardian_contact: updatedUser.guardian_contact ?? ''
         });
@@ -360,6 +367,7 @@ const StudentDashboard = () => {
           phone: updatedUser.phone ?? '',
           date_of_birth: updatedUser.date_of_birth ?? '',
           grade_level: updatedUser.grade_level ?? '',
+          program: updatedUser.program ?? '',
           guardian_name: updatedUser.guardian_name ?? '',
           guardian_contact: updatedUser.guardian_contact ?? ''
         });
@@ -1190,8 +1198,23 @@ const StudentDashboard = () => {
                         <option value="Grade 10">Grade 10</option>
                         <option value="Grade 11">Grade 11</option>
                         <option value="Grade 12">Grade 12</option>
+                        <option value="Tertiary">Tertiary</option>
                       </select>
                     </div>
+
+                    {formData.grade_level === 'Tertiary' && (
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Program</label>
+                        <input
+                          type="text"
+                          value={formData.program || ''}
+                          onChange={(e) => setFormData({ ...formData, program: e.target.value })}
+                          disabled={!editing}
+                          placeholder="e.g., BS Computer Science"
+                          className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white disabled:opacity-50 transition"
+                        />
+                      </div>
+                    )}
 
                     <div className="md:col-span-2">
                       <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Address</label>
