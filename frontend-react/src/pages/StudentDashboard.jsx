@@ -54,6 +54,7 @@ const StudentDashboard = () => {
     date_of_birth: '',
     grade_level: '',
     program: '',
+    tertiary_year: '',
     guardian_name: '',
     guardian_contact: ''
   });
@@ -85,6 +86,7 @@ const StudentDashboard = () => {
           date_of_birth: u.date_of_birth ?? '',
           grade_level: u.grade_level ?? '',
           program: u.program ?? '',
+          tertiary_year: u.tertiary_year ?? '',
           guardian_name: u.guardian_name ?? '',
           guardian_contact: u.guardian_contact ?? ''
         });
@@ -305,6 +307,9 @@ const StudentDashboard = () => {
       if (formData.program && formData.program.trim()) {
         profileData.program = formData.program;
       }
+      if (formData.tertiary_year && formData.tertiary_year.trim()) {
+        profileData.tertiary_year = formData.tertiary_year;
+      }
       if (formData.guardian_name && formData.guardian_name.trim()) {
         profileData.guardian_name = formData.guardian_name;
       }
@@ -326,6 +331,7 @@ const StudentDashboard = () => {
         if (profileData.guardian_name) formDataToSend.append('guardian_name', profileData.guardian_name);
         if (profileData.guardian_contact) formDataToSend.append('guardian_contact', profileData.guardian_contact);
         if (profileData.program) formDataToSend.append('program', profileData.program);
+        if (profileData.tertiary_year) formDataToSend.append('tertiary_year', profileData.tertiary_year);
         
         formDataToSend.append('profile_picture', profilePicture);
         
@@ -342,6 +348,7 @@ const StudentDashboard = () => {
           date_of_birth: updatedUser.date_of_birth ?? '',
           grade_level: updatedUser.grade_level ?? '',
           program: updatedUser.program ?? '',
+          tertiary_year: updatedUser.tertiary_year ?? '',
           guardian_name: updatedUser.guardian_name ?? '',
           guardian_contact: updatedUser.guardian_contact ?? ''
         });
@@ -368,6 +375,7 @@ const StudentDashboard = () => {
           date_of_birth: updatedUser.date_of_birth ?? '',
           grade_level: updatedUser.grade_level ?? '',
           program: updatedUser.program ?? '',
+          tertiary_year: updatedUser.tertiary_year ?? '',
           guardian_name: updatedUser.guardian_name ?? '',
           guardian_contact: updatedUser.guardian_contact ?? ''
         });
@@ -1203,17 +1211,35 @@ const StudentDashboard = () => {
                     </div>
 
                     {formData.grade_level === 'Tertiary' && (
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Program</label>
-                        <input
-                          type="text"
-                          value={formData.program || ''}
-                          onChange={(e) => setFormData({ ...formData, program: e.target.value })}
-                          disabled={!editing}
-                          placeholder="e.g., BS Computer Science"
-                          className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white disabled:opacity-50 transition"
-                        />
-                      </div>
+                      <>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Program</label>
+                          <input
+                            type="text"
+                            value={formData.program || ''}
+                            onChange={(e) => setFormData({ ...formData, program: e.target.value })}
+                            disabled={!editing}
+                            placeholder="e.g., BS Computer Science"
+                            className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white disabled:opacity-50 transition"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Year</label>
+                          <select
+                            value={formData.tertiary_year || ''}
+                            onChange={(e) => setFormData({ ...formData, tertiary_year: e.target.value })}
+                            disabled={!editing}
+                            className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white disabled:opacity-50 transition"
+                          >
+                            <option value="">Select Year</option>
+                            <option value="1st Year">1st Year</option>
+                            <option value="2nd Year">2nd Year</option>
+                            <option value="3rd Year">3rd Year</option>
+                            <option value="4th Year">4th Year</option>
+                          </select>
+                        </div>
+                      </>
                     )}
 
                     <div className="md:col-span-2">
