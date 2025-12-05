@@ -73,6 +73,8 @@ const DashboardNavbar = ({ user, userRole = 'counselor', activeTab = 'dashboard'
 
   const navItems = getNavItems();
 
+  const basePath = userRole === 'student' ? '/student/dashboard' : userRole === 'admin' ? '/admin/dashboard' : '/counselor/dashboard';
+
   const handleNavClick = (itemId) => {
     onTabChange(itemId);
     setMobileMenuOpen(false);
@@ -374,7 +376,8 @@ const DashboardNavbar = ({ user, userRole = 'counselor', activeTab = 'dashboard'
                     <div className="py-2">
                       <button
                         onClick={() => {
-                          navigate('/dashboard/profile');
+                          if (typeof onTabChange === 'function') onTabChange('profile');
+                          navigate(basePath);
                           setProfileDropdownOpen(false);
                         }}
                         className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-green-50 dark:hover:bg-green-900/20 flex items-center gap-2 transition"
@@ -384,7 +387,8 @@ const DashboardNavbar = ({ user, userRole = 'counselor', activeTab = 'dashboard'
                       </button>
                       <button
                         onClick={() => {
-                          navigate('/dashboard/settings');
+                          if (typeof onTabChange === 'function') onTabChange('settings');
+                          navigate(basePath);
                           setProfileDropdownOpen(false);
                         }}
                         className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-green-50 dark:hover:bg-green-900/20 flex items-center gap-2 transition"
