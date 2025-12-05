@@ -197,9 +197,9 @@ export default function LoginForm() {
                 <input type="checkbox" className="w-4 h-4 rounded border-green-300 accent-green-600 cursor-pointer" />
                 <span className="ml-2 text-gray-600 dark:text-gray-400 group-hover:text-green-600 transition-colors">Remember me</span>
               </label>
-              <a href="#" className="text-sm text-green-600 hover:text-green-700 dark:hover:text-green-400 font-semibold transition-colors hover:underline">
+              <Link to="/forgot-password" className="text-sm text-green-600 hover:text-green-700 dark:hover:text-green-400 font-semibold transition-colors hover:underline">
                 Forgot password?
-              </a>
+              </Link>
             </div>
 
             {/* Login Button */}
