@@ -10,6 +10,8 @@ Route::post('/login', [AuthController::class, 'login'])->name('login');
 Route::post('/register', [AuthController::class, 'register'])->name('register');
 Route::post('/verify-email', [AuthController::class, 'verifyEmail'])->name('verify.email');
 Route::post('/resend-verification', [AuthController::class, 'resendVerification'])->name('resend.verification');
+Route::post('/password/forgot', [AuthController::class, 'sendPasswordReset'])->name('password.forgot');
+Route::post('/password/reset', [AuthController::class, 'resetPassword'])->name('password.reset');
 
 Route::middleware('auth:sanctum')->post('/logout', [AuthController::class, 'logout'])->name('logout');
 

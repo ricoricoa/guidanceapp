@@ -14,6 +14,8 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
 use App\Mail\EmailVerification;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Password;
+use Illuminate\Support\Str;
 
 //php artisan make:controller Api/V1/AuthController
 class AuthController extends Controller
@@ -172,6 +174,50 @@ class AuthController extends Controller
         }
 
         return $this->ok('Verification code resent');
+    }
+
+    /**
+     * Send password reset link to a user's email
+     */
+    public function sendPasswordReset(Request $request)
+    {
+        $request->validate(['email' => ['required','email']]);
+        $status = Password::sendResetLink($request->only('email'));
+
+        if ($status === Password::RESET_LINK_SENT) {
+            return $this->ok('Password reset link sent');
+        }
+
+        return $this->error('Unable to send password reset link', 500);
+    }
+
+    /**
+     * Reset user's password using token
+     */
+    public function resetPassword(Request $request)
+    {
+        $request->validate([
+            'token' => 'required|string',
+            'email' => 'required|email',
+            'password' => 'required|string|min:8|confirmed',
+        ]);
+
+        $status = Password::reset(
+            $request->only('email', 'password', 'password_confirmation', 'token'),
+            function ($user, $password) {
+                $user->forceFill([
+                    'password' => Hash::make($password)
+                ])->setRememberToken(Str::random(60));
+
+                $user->save();
+            }
+        );
+
+        if ($status === Password::PASSWORD_RESET) {
+            return $this->ok('Password has been reset');
+        }
+
+        return $this->error('Failed to reset password', 400);
     }
 
 

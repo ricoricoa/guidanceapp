@@ -91,3 +91,11 @@ export const verifyEmail = async (email, code) => {
 export const resendVerification = async (email) => {
   return api.post('/api/resend-verification', { email });
 };
+
+export const sendPasswordReset = async (email) => {
+  return api.post('/api/password/forgot', { email });
+};
+
+export const resetPassword = async ({ token, email, password, password_confirmation }) => {
+  return api.post('/api/password/reset', { token, email, password, password_confirmation });
+};
