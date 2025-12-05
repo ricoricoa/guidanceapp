@@ -23,7 +23,8 @@ class RegisterUserRequest extends FormRequest
     {
         return [
             'name' => 'required|string|max:255',
-            'email' => 'required|string|email|unique:users,email',
+            // Only allow registrations using the official MinSU email domain
+            'email' => 'required|string|email|unique:users,email|ends_with:minsu.edu.ph',
             'password' => 'required|string|min:8|confirmed',
             'role' => 'nullable|string|in:student,guidance,counselor',
             'address' => 'nullable|string|max:500',

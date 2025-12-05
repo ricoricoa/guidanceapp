@@ -44,7 +44,12 @@ export default function Register() {
     e.preventDefault();
     setErrors({});
     setLoading(true);
-
+    // Client-side enforcement: restrict registration to MinSU email domain
+    if (!formData.email || !formData.email.toLowerCase().endsWith('@minsu.edu.ph')) {
+      setErrors({ general: 'Registration is limited to MinSU email addresses (ending with @minsu.edu.ph).' });
+      setLoading(false);
+      return;
+    }
     try {
       const response = await register(formData);
       navigate("/login", { state: { message: "Registration successful! Please login." } });

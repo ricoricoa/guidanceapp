@@ -20,6 +20,13 @@ export default function LoginForm() {
     setLoading(true);
     setError(null);
 
+    // Client-side enforcement of MinSU email domain for UX improvements
+    if (!formData.email || !formData.email.toLowerCase().endsWith('@minsu.edu.ph')) {
+      setError('Please use your MinSU email address (ending with @minsu.edu.ph)');
+      setLoading(false);
+      return;
+    }
+
     try {
       const response = await login(formData.email, formData.password);
       

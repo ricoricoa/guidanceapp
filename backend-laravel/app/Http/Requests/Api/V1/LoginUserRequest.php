@@ -22,7 +22,8 @@ class LoginUserRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'email' => ['required', 'string', 'email'],
+            // Only allow MinSU student/counselor emails from the official domain
+            'email' => ['required', 'string', 'email', 'ends_with:minsu.edu.ph'],
             'password' => ['required', 'string', 'min:8'],
         ];
     }
