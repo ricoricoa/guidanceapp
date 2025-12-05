@@ -52,7 +52,8 @@ export default function Register() {
     }
     try {
       const response = await register(formData);
-      navigate("/login", { state: { message: "Registration successful! Please login." } });
+      // Navigate to verification page so user can input OTP sent to their MinSU email
+      navigate('/verify-email', { state: { email: formData.email } });
     } catch (error) {
       console.error('Registration error:', error);
       if (error.response && error.response.status === 422) {

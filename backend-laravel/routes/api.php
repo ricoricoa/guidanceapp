@@ -8,6 +8,8 @@ use Illuminate\Support\Facades\Route;
 
 Route::post('/login', [AuthController::class, 'login'])->name('login');
 Route::post('/register', [AuthController::class, 'register'])->name('register');
+Route::post('/verify-email', [AuthController::class, 'verifyEmail'])->name('verify.email');
+Route::post('/resend-verification', [AuthController::class, 'resendVerification'])->name('resend.verification');
 
 Route::middleware('auth:sanctum')->post('/logout', [AuthController::class, 'logout'])->name('logout');
 

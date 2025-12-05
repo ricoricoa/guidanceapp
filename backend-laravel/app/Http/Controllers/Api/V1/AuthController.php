@@ -11,6 +11,9 @@ use App\Traits\ApiResponses;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Mail;
+use App\Mail\EmailVerification;
+use Carbon\Carbon;
 
 //php artisan make:controller Api/V1/AuthController
 class AuthController extends Controller
@@ -73,7 +76,7 @@ class AuthController extends Controller
     public function register(RegisterUserRequest $request)
     {
         $data = $request->validated();
-
+        // Create user but don't auto-verify email yet
         $user = User::create([
             'name' => $data['name'],
             'email' => $data['email'],
@@ -83,10 +86,92 @@ class AuthController extends Controller
             'counselor_id' => $data['counselor_id'] ?? null,
         ]);
 
+        // Generate 6-digit OTP
+        $code = str_pad((string) rand(0, 999999), 6, '0', STR_PAD_LEFT);
+        $expiry = Carbon::now()->addMinutes(15);
+
+        $user->email_verification_code = $code;
+        $user->email_verification_expires_at = $expiry;
+        $user->save();
+
+        // Send verification email (best-effort)
+        try {
+            Mail::to($user->email)->send(new EmailVerification($code));
+        } catch (\Exception $e) {
+            \Log::error('Failed to send verification email', ['error' => $e->getMessage()]);
+        }
+
         return $this->ok(
-            'User registered successfully',
-            ['user' => $user]
+            'User registered successfully. Please check your MinSU email for the verification code.',
+            ['user' => ['id' => $user->id, 'email' => $user->email]]
         );
+    }
+
+    /**
+     * Verify email with OTP code and issue token
+     */
+    public function verifyEmail(Request $request)
+    {
+        $request->validate([
+            'email' => ['required', 'email'],
+            'code' => ['required', 'string'],
+        ]);
+
+        $user = User::where('email', $request->input('email'))->first();
+        if (!$user) {
+            return $this->error('User not found', 404);
+        }
+
+        if (!$user->email_verification_code || !$user->email_verification_expires_at) {
+            return $this->error('No verification code found. Please request a new code.', 400);
+        }
+
+        if (Carbon::now()->gt(Carbon::parse($user->email_verification_expires_at))) {
+            return $this->error('Verification code expired. Please request a new code.', 400);
+        }
+
+        if (hash_equals($user->email_verification_code, $request->input('code'))) {
+            $user->email_verified_at = Carbon::now();
+            $user->email_verification_code = null;
+            $user->email_verification_expires_at = null;
+            $user->save();
+
+            // Issue token upon verification
+            $token = $user->createToken('api-token')->plainTextToken;
+
+            return $this->ok('Email verified', ['token' => $token, 'user' => $user]);
+        }
+
+        return $this->error('Invalid verification code', 400);
+    }
+
+    /**
+     * Resend verification OTP
+     */
+    public function resendVerification(Request $request)
+    {
+        $request->validate(['email' => ['required', 'email']]);
+
+        $user = User::where('email', $request->input('email'))->first();
+        if (!$user) {
+            return $this->error('User not found', 404);
+        }
+
+        // Generate new code
+        $code = str_pad((string) rand(0, 999999), 6, '0', STR_PAD_LEFT);
+        $expiry = Carbon::now()->addMinutes(15);
+
+        $user->email_verification_code = $code;
+        $user->email_verification_expires_at = $expiry;
+        $user->save();
+
+        try {
+            Mail::to($user->email)->send(new EmailVerification($code));
+        } catch (\Exception $e) {
+            \Log::error('Failed to resend verification email', ['error' => $e->getMessage()]);
+        }
+
+        return $this->ok('Verification code resent');
     }
 
 

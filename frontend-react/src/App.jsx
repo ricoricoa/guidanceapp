@@ -6,6 +6,7 @@ import CarForm from "./pages/CarForm";
 import LandingPage from "./pages/LandingPage";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
+import VerifyEmail from "./pages/VerifyEmail";
 import Cars from "./pages/CarListing";
 import StudentDashboard from "./pages/StudentDashboard";
 import CounselorDashboard from "./pages/CounselorDashboard";
@@ -37,6 +38,7 @@ const App = () => {
           <Route path="/car-form" element={<CarForm />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
+          <Route path="/verify-email" element={<VerifyEmail />} />
           <Route
             path="/student/dashboard"
             element={

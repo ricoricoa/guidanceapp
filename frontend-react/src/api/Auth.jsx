@@ -73,3 +73,21 @@ export const initializeAuth = () => {
     console.log('InitializeAuth: No token found in storage');
   }
 };
+
+export const verifyEmail = async (email, code) => {
+  try {
+    const response = await api.post('/api/verify-email', { email, code });
+    // store token if provided
+    if (response.data.data?.token) {
+      localStorage.setItem('authToken', response.data.data.token);
+      api.defaults.headers.common['Authorization'] = `Bearer ${response.data.data.token}`;
+    }
+    return response;
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const resendVerification = async (email) => {
+  return api.post('/api/resend-verification', { email });
+};
