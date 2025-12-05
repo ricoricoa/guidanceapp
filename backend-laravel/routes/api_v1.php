@@ -93,7 +93,15 @@ Route::middleware('auth:sanctum')->group(function () {
 
 // Profile endpoints: view and update allowed profile fields (no role changes)
 Route::middleware('auth:sanctum')->get('/user/profile', function (Request $request) {
-	return response()->json(['user' => $request->user()]);
+	$user = $request->user();
+	// Expose a public URL for profile picture if stored
+	if ($user->profile_picture_path) {
+		$user->profile_picture = asset('storage/' . $user->profile_picture_path);
+	} else {
+		$user->profile_picture = null;
+	}
+
+	return response()->json(['user' => $user]);
 });
 
 Route::middleware('auth:sanctum')->put('/user/profile', function (Request $request) {
@@ -105,6 +113,8 @@ Route::middleware('auth:sanctum')->put('/user/profile', function (Request $reque
 		'address' => ['nullable', 'string', 'max:500'],
 		'phone' => ['nullable', 'string', 'max:20'],
 		'year' => ['nullable', 'string', 'max:255'],
+		'program' => ['nullable', 'string', 'max:255'],
+		'tertiary_year' => ['nullable', 'string', 'max:50'],
 		'bio' => ['nullable', 'string', 'max:1000'],
 		'date_of_birth' => ['nullable', 'date'],
 		'grade_level' => ['nullable', 'string', 'max:50'],
@@ -119,6 +129,8 @@ Route::middleware('auth:sanctum')->put('/user/profile', function (Request $reque
 		'address' => $data['address'] ?? null,
 		'phone' => $data['phone'] ?? null,
 		'year' => $data['year'] ?? null,
+		'program' => $data['program'] ?? null,
+		'tertiary_year' => $data['tertiary_year'] ?? null,
 		'bio' => $data['bio'] ?? null,
 		'date_of_birth' => $data['date_of_birth'] ?? null,
 		'grade_level' => $data['grade_level'] ?? null,
@@ -148,6 +160,13 @@ Route::middleware('auth:sanctum')->put('/user/profile', function (Request $reque
 	}
 
 	$user->save();
+
+	// Expose public URL for the profile picture if stored
+	if ($user->profile_picture_path) {
+		$user->profile_picture = asset('storage/' . $user->profile_picture_path);
+	} else {
+		$user->profile_picture = null;
+	}
 
 	return response()->json(['message' => 'Profile updated', 'user' => $user]);
 });

@@ -33,6 +33,8 @@ class User extends Authenticatable
         'counselor_id',
         'date_of_birth',
         'grade_level',
+        'program',
+        'tertiary_year',
         'guardian_name',
         'guardian_contact',
     ];
