@@ -468,7 +468,7 @@ const StudentDashboard = () => {
 
   return (
     <>
-      <DashboardNavbar user={user} userRole="student" activeTab={activeTab} onTabChange={setActiveTab} />
+      <DashboardNavbar user={user} userRole="student" activeTab={activeTab} onTabChange={setActiveTab} notifications={notifications} unreadCount={notifications.filter(n => !n.read).length} />
       <div className="min-h-screen bg-gradient-to-br from-green-50 via-emerald-50 to-teal-50 dark:from-gray-950 dark:via-green-950 dark:to-teal-950 flex animate-fade-in">
       {/* Sidebar with Enhanced Design */}
       <div className="w-64 bg-gradient-to-b from-green-50 to-emerald-50 dark:from-green-900/30 dark:to-emerald-900/40 shadow-2xl fixed left-0 top-16 h-[calc(100vh-4rem)] overflow-y-auto border-r-2 border-green-300 dark:border-green-800">

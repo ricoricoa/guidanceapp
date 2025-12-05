@@ -20,7 +20,7 @@ import {
 } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 
-const DashboardNavbar = ({ user, userRole = 'counselor', activeTab = 'dashboard', onTabChange = () => {} }) => {
+const DashboardNavbar = ({ user, userRole = 'counselor', activeTab = 'dashboard', onTabChange = () => {}, notifications: propNotifications = null, unreadCount: propUnread = null }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const { isDark, toggleTheme } = useTheme();
@@ -28,14 +28,15 @@ const DashboardNavbar = ({ user, userRole = 'counselor', activeTab = 'dashboard'
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
   const [notificationDropdownOpen, setNotificationDropdownOpen] = useState(false);
 
-  // Notification mock data
-  const [notifications] = useState([
+  // Notifications: use parent-provided notifications when available
+  const [localNotifications] = useState([
     { id: 1, message: 'New appointment request', time: '5 minutes ago', read: false },
     { id: 2, message: 'Student submission received', time: '1 hour ago', read: false },
     { id: 3, message: 'Profile updated successfully', time: '2 hours ago', read: true },
   ]);
 
-  const unreadNotifications = notifications.filter(n => !n.read).length;
+  const notifications = propNotifications ?? localNotifications;
+  const unreadNotifications = (typeof propUnread === 'number') ? propUnread : notifications.filter(n => !n.read).length;
 
   // Navigation items based on role
   const getNavItems = () => {
