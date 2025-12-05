@@ -55,9 +55,20 @@ const StudentDashboard = () => {
     grade_level: '',
     program: '',
     tertiary_year: '',
+    program_custom: false,
     guardian_name: '',
     guardian_contact: ''
   });
+
+  // Common program options for tertiary students
+  const PROGRAM_OPTIONS = [
+    'BS Computer Science',
+    'BS Information Technology',
+    'BS Entrepreneurship',
+    'BS e',
+    'BA Communication',
+    'BS Business Administration'
+  ];
   const [profilePicture, setProfilePicture] = useState(null);
   const [profilePicturePreview, setProfilePicturePreview] = useState(null);
   const [saving, setSaving] = useState(false);
@@ -82,12 +93,13 @@ const StudentDashboard = () => {
           name: u.name ?? '', 
           email: u.email ?? '', 
           address: u.address ?? '',
-          phone: u.phone ?? '',
-          date_of_birth: u.date_of_birth ?? '',
+          phone: u.phone ?? '', 
+          date_of_birth: u.date_of_birth ?? '', 
           grade_level: u.grade_level ?? '',
           program: u.program ?? '',
           tertiary_year: u.tertiary_year ?? '',
-          guardian_name: u.guardian_name ?? '',
+          program_custom: u.program && ![...PROGRAM_OPTIONS].includes(u.program) ? true : false,
+          guardian_name: u.guardian_name ?? '', 
           guardian_contact: u.guardian_contact ?? ''
         });
         if (u.profile_picture) {
@@ -1214,14 +1226,36 @@ const StudentDashboard = () => {
                       <>
                         <div>
                           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Program</label>
-                          <input
-                            type="text"
-                            value={formData.program || ''}
-                            onChange={(e) => setFormData({ ...formData, program: e.target.value })}
+                          <select
+                            value={PROGRAM_OPTIONS.includes(formData.program) ? formData.program : (formData.program_custom ? 'Other' : '')}
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              if (val === 'Other') {
+                                setFormData({ ...formData, program_custom: true });
+                              } else {
+                                setFormData({ ...formData, program: val, program_custom: false });
+                              }
+                            }}
                             disabled={!editing}
-                            placeholder="e.g., BS Computer Science"
                             className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white disabled:opacity-50 transition"
-                          />
+                          >
+                            <option value="">Select Program</option>
+                            {PROGRAM_OPTIONS.map((p) => (
+                              <option key={p} value={p}>{p}</option>
+                            ))}
+                            <option value="Other">Other (specify)</option>
+                          </select>
+
+                          {formData.program_custom && (
+                            <input
+                              type="text"
+                              value={formData.program || ''}
+                              onChange={(e) => setFormData({ ...formData, program: e.target.value })}
+                              disabled={!editing}
+                              placeholder="Specify your program"
+                              className="w-full mt-2 px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white disabled:opacity-50 transition"
+                            />
+                          )}
                         </div>
 
                         <div>
